@@ -138,6 +138,14 @@ function getFXRate(ccy, date) {
   return closest ? series[closest] : 1;
 }
 
+function getPositionUrl(pos) {
+  const t = pos.ticker;
+  if (!t) return null;
+  if (t.startsWith("POLY:")) return `https://polymarket.com/event/${t.split(":")[1]}`;
+  if (pos.coingecko_id)       return `https://www.coingecko.com/en/coins/${pos.coingecko_id}`;
+  return `https://finance.yahoo.com/quote/${encodeURIComponent(t)}`;
+}
+
 function getPriceSeries(ticker) {
   const series = priceData[ticker];
   if (!series) return null;
@@ -316,6 +324,7 @@ function renderPositionCards(participant) {
     const totalRet  = retSeries?.at(-1)?.ret ?? null;
     const color     = COLORS[i % COLORS.length];
     const chartId   = `pos-chart-${i}`;
+    const url       = getPositionUrl(pos);
 
     const retLabel = totalRet === null
       ? `<span class="position-return" style="color:#9a9186">no data</span>`
@@ -326,7 +335,9 @@ function renderPositionCards(participant) {
     card.innerHTML = `
       <div class="position-card-header">
         <div>
-          <span class="position-ticker">${pos.ticker ?? pos.raw_name}</span>
+          ${url
+            ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="position-ticker-link"><span class="position-ticker">${pos.ticker ?? pos.raw_name}</span></a>`
+            : `<span class="position-ticker">${pos.ticker ?? pos.raw_name}</span>`}
           ${pos.ticker ? `<div class="position-name">${pos.raw_name}</div>` : ""}
         </div>
         <span class="position-meta">${pos.weight}% · ${pos.type}</span>
@@ -393,7 +404,9 @@ function renderPortfolios() {
           ${p.positions.map(pos => `
             <tr>
               <td>${pos.raw_name}</td>
-              <td class="td-ticker">${pos.ticker ?? "—"}</td>
+              <td class="td-ticker">${pos.ticker
+                ? `<a href="${getPositionUrl(pos)}" target="_blank" rel="noopener noreferrer" class="ticker-link">${pos.ticker}</a>`
+                : "—"}</td>
               <td>${pos.type}</td>
               <td class="td-ticker">${pos.currency}</td>
               <td class="td-weight">${pos.weight}%</td>

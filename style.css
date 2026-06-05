@@ -234,12 +234,28 @@ main { max-width: 960px; margin: 0 auto; padding: var(--space-xl) var(--space-lg
   border-bottom: 1px solid var(--rule);
 }
 
+.position-ticker-link { text-decoration: none; }
+.position-ticker-link:hover .position-ticker {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .position-ticker {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 700;
   display: block;
+  color: var(--ink);
 }
+
+.ticker-link {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.ticker-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .position-name {
   font-family: var(--font-serif);
