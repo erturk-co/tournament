@@ -2,7 +2,7 @@ name: Refresh prices
 
 on:
   schedule:
-    - cron: '0 22 * * 1-5'  # 10pm UTC (6pm ET) on weekdays
+    - cron: '0 * * * *'  # every hour
   workflow_dispatch:          # allows manual trigger from GitHub UI
 
 permissions:
