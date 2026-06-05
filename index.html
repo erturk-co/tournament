@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tournament</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Commit+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <nav>
+      <span class="site-title">投資 Tournament</span>
+      <div class="nav-links">
+        <a href="#" class="nav-link active" data-page="leaderboard">Leaderboard</a>
+        <a href="#" class="nav-link" data-page="portfolios">Portfolios</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- LEADERBOARD PAGE -->
+    <section id="page-leaderboard" class="page active">
+      <div class="page-header">
+        <h1>Leaderboard</h1>
+        <span class="subtitle" id="last-updated"></span>
+      </div>
+      <table class="leaderboard-table" id="leaderboard-table">
+        <thead>
+          <tr>
+            <th class="col-rank">#</th>
+            <th class="col-name">Participant</th>
+            <th class="col-return">Total Return</th>
+            <th class="col-chart">Since Jun 2</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </section>
+
+    <!-- PARTICIPANT DETAIL PAGE -->
+    <section id="page-detail" class="page">
+      <div class="page-header">
+        <button class="back-btn" id="back-btn">← Back</button>
+        <h1 id="detail-name"></h1>
+      </div>
+      <div class="detail-warning" id="detail-warning" style="display:none"></div>
+      <div class="chart-block">
+        <h2>Portfolio Value</h2>
+        <div class="chart-wrap" id="chart-portfolio"></div>
+      </div>
+      <div id="positions-section"></div>
+    </section>
+
+    <!-- PORTFOLIOS PAGE -->
+    <section id="page-portfolios" class="page">
+      <div class="page-header">
+        <h1>Portfolios</h1>
+        <span class="subtitle">Allocations as of 2 June 2026 — fixed, buy-and-hold</span>
+      </div>
+      <div id="portfolios-grid"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
