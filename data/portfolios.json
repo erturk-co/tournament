@@ -82,5 +82,16 @@
     "positions": [
       { "raw_name": "US-Iran Nuclear Deal by Jul 31 (NO)", "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO", "baseline_price": 0.56, "type": "Prediction", "exchange": "polymarket", "currency": "USD", "weight": 100, "notes": "Bought NO at $0.56." }
     ]
+  },
+  {
+    "id": "tugba",
+    "name": "Tugba",
+    "positions": [
+      { "raw_name": "Galata Wind",     "ticker": "GWIND.IS", "type": "Equity", "exchange": "BIST", "currency": "TRY", "weight": 20.55, "notes": "Renewable energy, 78% upside target." },
+      { "raw_name": "Koton",           "ticker": "KOTON.IS", "type": "Equity", "exchange": "BIST", "currency": "TRY", "weight": 13.70, "notes": "Consumer recovery play, 84% upside target." },
+      { "raw_name": "BİM",             "ticker": "BIMAS.IS", "type": "Equity", "exchange": "BIST", "currency": "TRY", "weight": 10.95, "notes": "Founder buying, strong buy consensus." },
+      { "raw_name": "Sabancı Holding", "ticker": "SAHOL.IS", "type": "Equity", "exchange": "BIST", "currency": "TRY", "weight": 27.40, "notes": "Strongest analyst coverage (8 institutions), 108% upside target." },
+      { "raw_name": "Astor Enerji",    "ticker": "ASTOR.IS", "type": "Equity", "exchange": "BIST", "currency": "TRY", "weight": 27.40, "notes": "Energy growth story, 87% analyst upside target." }
+    ]
   }
 ]
