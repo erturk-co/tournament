@@ -57,6 +57,95 @@ def fetch_yfinance(tickers, start):
             print(f"  WARNING: no data for {t}")
     return result
 
+
+def fix_recent_splits(prices, yf_tickers, start):
+    """
+    yfinance auto_adjust can return inconsistent data for tickers with very recent
+    reverse splits — mixing pre-split and post-split prices in the same series.
+    For any ticker with a split since start, re-fetch raw (unadjusted) prices and
+    manually normalize everything to the post-split price basis.
+    """
+    import pandas as pd
+
+    for ticker in yf_tickers:
+        if ticker not in prices:
+            continue
+        try:
+            t = yf.Ticker(ticker)
+            splits = t.splits
+            if splits.empty:
+                continue
+
+            recent = splits[[str(idx.date()) >= start for idx in splits.index]]
+            if recent.empty:
+                continue
+
+            print(f"  {ticker}: {len(recent)} split(s) since {start} — recomputing from raw prices")
+
+            # Re-fetch raw unadjusted prices
+            hist = t.history(start=start, auto_adjust=False)
+            if hist.empty:
+                continue
+
+            raw = {str(d.date()): round(float(v), 6)
+                   for d, v in hist["Close"].dropna().items()}
+            sorted_dates = sorted(raw)
+
+            for split_ts, ratio in sorted(recent.items()):
+                scale = round(1.0 / ratio)  # e.g. 30 for a 1-for-30 reverse split
+                recorded = str(split_ts.date())
+
+                # --- Step 1: find the natural bimodal break in the price series ---
+                # A reverse split creates two distinct price clusters; the largest
+                # relative gap between consecutive sorted prices marks the boundary.
+                all_prices = sorted(raw.values())
+                threshold = None
+                max_gap = 0.0
+                for i in range(1, len(all_prices)):
+                    if all_prices[i - 1] > 0:
+                        gap = all_prices[i] / all_prices[i - 1]
+                        if gap > max_gap and gap > 2.0:
+                            max_gap = gap
+                            threshold = (all_prices[i - 1] + all_prices[i]) / 2
+
+                if threshold is None:
+                    print(f"    WARNING: no bimodal gap found for {ticker}, skipping split fix")
+                    continue
+
+                # --- Step 2: find the true effective date ---
+                # The effective date is the first date where the price exceeds the
+                # threshold AND *stays* above it for the next 3 trading days.
+                # This rejects isolated yfinance data artifacts where a single day
+                # briefly shows the post-split price before reverting.
+                effective = recorded
+                for i, d in enumerate(sorted_dates):
+                    if raw[d] > threshold:
+                        next_days = sorted_dates[i + 1: i + 4]
+                        if all(raw[d2] > threshold for d2 in next_days) or len(next_days) < 3:
+                            effective = d
+                            break
+
+                # --- Step 3: scale pre-split prices to the post-split basis ---
+                # Only scale prices that are clearly still at the pre-split level
+                # (< threshold); isolated artifacts that already show post-split
+                # prices are left untouched so they don't get doubled.
+                n_scaled = 0
+                for d in sorted_dates:
+                    if d < effective and raw[d] < threshold:
+                        raw[d] = round(raw[d] * scale, 6)
+                        n_scaled += 1
+
+                print(f"    1:{scale} reverse split | recorded {recorded} | "
+                      f"effective {effective} | threshold ${threshold:.2f} | "
+                      f"{n_scaled} pre-split prices scaled")
+
+            prices[ticker] = raw
+
+        except Exception as e:
+            print(f"  WARNING: split correction failed for {ticker}: {e}")
+
+    return prices
+
 def fetch_coingecko(coingecko_tickers, start, existing_prices):
     if not coingecko_tickers:
         return {}
@@ -173,6 +262,7 @@ def main():
 
     prices = {}
     prices.update(fetch_yfinance(yf_tickers + fx_pairs, START))
+    fix_recent_splits(prices, yf_tickers, START)
     prices.update(fetch_coingecko(coingecko_tickers, START, existing))
     prices.update(fetch_polymarket(poly_tickers, existing))
 
