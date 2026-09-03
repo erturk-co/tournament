@@ -1,12 +1,12 @@
 name: Refresh prices
 
 on:
+  # Also keeps the Supabase free-tier project out of its 7-day-inactivity
+  # auto-pause, since this hits the API every hour. If this schedule ever
+  # changes, check the Supabase dashboard isn't paused.
   schedule:
     - cron: '0 * * * *'  # every hour
   workflow_dispatch:          # allows manual trigger from GitHub UI
-
-permissions:
-  contents: write
 
 jobs:
   refresh:
@@ -22,12 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Fetch prices
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/fetch_prices.py
-
-      - name: Commit updated prices
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/prices.json
-          git diff --staged --quiet || git commit -m "chore: refresh prices $(date -u +%Y-%m-%d)"
-          git push

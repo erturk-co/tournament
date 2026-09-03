@@ -16,6 +16,8 @@
       <div class="nav-links">
         <a href="#" class="nav-link active" data-page="leaderboard">Leaderboard</a>
         <a href="#" class="nav-link" data-page="portfolios">Portfolios</a>
+        <a href="#" class="nav-link" data-page="rebalance">Rebalance</a>
+        <a href="#" class="nav-link" data-page="history">Tournament History</a>
       </div>
     </nav>
   </header>
@@ -51,6 +53,10 @@
         <h2>Portfolio Value</h2>
         <div class="chart-wrap" id="chart-portfolio"></div>
       </div>
+      <div class="chart-block">
+        <h2>Allocation Over Time</h2>
+        <div id="chart-allocation-history"></div>
+      </div>
       <div id="positions-section"></div>
     </section>
 
@@ -58,11 +64,56 @@
     <section id="page-portfolios" class="page">
       <div class="page-header">
         <h1>Portfolios</h1>
-        <span class="subtitle">Allocations as of 2 June 2026 — fixed, buy-and-hold</span>
+        <span class="subtitle">Current allocations — rebalance anytime, changes apply the following Monday</span>
       </div>
       <div id="portfolios-grid"></div>
     </section>
+
+    <!-- REBALANCE PAGE -->
+    <section id="page-rebalance" class="page">
+      <div class="page-header">
+        <h1>Rebalance</h1>
+        <span class="subtitle">Stage a new allocation — it takes effect the following Monday</span>
+      </div>
+
+      <div class="rebalance-controls">
+        <label class="rebalance-field">
+          Participant
+          <select id="rebalance-participant"></select>
+        </label>
+        <span class="rebalance-hint" id="rebalance-hint"></span>
+      </div>
+
+      <table class="portfolio-table rebalance-table" id="rebalance-table">
+        <thead><tr>
+          <th>Asset</th><th>Ticker</th><th>Type</th><th>Exchange</th><th>Ccy</th>
+          <th style="text-align:right">Weight</th><th>Notes</th><th></th>
+        </tr></thead>
+        <tbody id="rebalance-tbody"></tbody>
+      </table>
+
+      <div class="rebalance-actions">
+        <button class="rebalance-btn" id="rebalance-add-row" type="button">+ Add position</button>
+        <span class="rebalance-weight-sum" id="rebalance-weight-sum"></span>
+        <button class="rebalance-btn rebalance-btn-primary" id="rebalance-generate" type="button">Submit rebalance</button>
+      </div>
+
+      <div class="rebalance-output" id="rebalance-output-block" style="display:none">
+        <p class="rebalance-instructions" id="rebalance-instructions"></p>
+      </div>
+    </section>
+
+    <!-- TOURNAMENT HISTORY PAGE -->
+    <section id="page-history" class="page">
+      <div class="page-header">
+        <h1>Tournament History</h1>
+        <span class="subtitle">Past tournaments, final standings</span>
+      </div>
+      <div id="history-list"></div>
+    </section>
   </main>
+
+  <div class="ticker-suggestions" id="ticker-suggestions" style="display:none"></div>
 
   <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <script src="app.js"></script>

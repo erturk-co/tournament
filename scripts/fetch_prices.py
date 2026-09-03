@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import urllib.request
 from datetime import date, datetime
@@ -15,17 +16,54 @@ DATA = ROOT / "data"
 START = "2026-06-02"
 BASE_CURRENCY = "USD"
 
-def load_portfolios():
-    with open(DATA / "portfolios.json") as f:
-        return json.load(f)
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-def collect_tickers(portfolios):
+def supabase_request(path, method="GET", body=None, prefer=None, range_header=None):
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        print("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY env vars")
+        sys.exit(1)
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+    }
+    if prefer:
+        headers["Prefer"] = prefer
+    if range_header:
+        headers["Range"] = range_header
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/{path}", data=data, headers=headers, method=method
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        raw = resp.read()
+        return json.loads(raw) if raw else None
+
+def supabase_get_all(path):
+    """GETs are paginated (PostgREST caps rows per response) — loop with a
+    Range header until a page comes back shorter than the page size."""
+    page_size = 1000
+    offset = 0
+    rows = []
+    while True:
+        page = supabase_request(path, range_header=f"{offset}-{offset + page_size - 1}") or []
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
+    return rows
+
+def load_allocations():
+    return supabase_get_all("allocations?select=positions")
+
+def collect_tickers(allocations):
     yf_tickers = set()
     poly_tickers = set()
     coingecko_tickers = {}  # ticker -> coingecko_id
     fx_pairs = set()
-    for p in portfolios:
-        for pos in p["positions"]:
+    for alloc in allocations:
+        for pos in alloc["positions"]:
             t = pos.get("ticker")
             if not t:
                 continue
@@ -35,8 +73,8 @@ def collect_tickers(portfolios):
                 coingecko_tickers[t] = pos["coingecko_id"]
             else:
                 yf_tickers.add(t)
-                if pos.get("currency") and pos["currency"] != BASE_CURRENCY:
-                    fx_pairs.add(f"{pos['currency']}USD=X")
+            if pos.get("currency") and pos["currency"] != BASE_CURRENCY:
+                fx_pairs.add(f"{pos['currency']}USD=X")
     return sorted(yf_tickers), sorted(poly_tickers), coingecko_tickers, sorted(fx_pairs)
 
 def fetch_yfinance(tickers, start):
@@ -249,15 +287,37 @@ def fetch_polymarket(poly_tickers, existing_prices):
     return result
 
 def load_existing_prices():
-    path = DATA / "prices.json"
-    if path.exists():
-        with open(path) as f:
-            return json.load(f).get("prices", {})
-    return {}
+    rows = supabase_get_all("prices?select=ticker,date,price")
+    existing = {}
+    for row in rows:
+        existing.setdefault(row["ticker"], {})[row["date"]] = row["price"]
+    return existing
+
+def upsert_prices(prices):
+    rows = [
+        {"ticker": ticker, "date": d, "price": p}
+        for ticker, series in prices.items()
+        for d, p in series.items()
+    ]
+    batch_size = 500
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i + batch_size]
+        supabase_request(
+            "prices", method="POST", body=batch,
+            prefer="resolution=merge-duplicates,return=minimal",
+        )
+    return len(rows)
+
+def upsert_meta(fetched_at, base_currency):
+    supabase_request(
+        "meta", method="POST",
+        body={"id": 1, "fetched_at": fetched_at, "base_currency": base_currency},
+        prefer="resolution=merge-duplicates,return=minimal",
+    )
 
 def main():
-    portfolios = load_portfolios()
-    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(portfolios)
+    allocations = load_allocations()
+    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations)
     existing = load_existing_prices()
 
     prices = {}
@@ -266,17 +326,9 @@ def main():
     prices.update(fetch_coingecko(coingecko_tickers, START, existing))
     prices.update(fetch_polymarket(poly_tickers, existing))
 
-    out = {
-        "fetched_at": str(date.today()),
-        "start_date": START,
-        "base_currency": BASE_CURRENCY,
-        "prices": prices
-    }
-
-    out_path = DATA / "prices.json"
-    with open(out_path, "w") as f:
-        json.dump(out, f, indent=2)
-    print(f"Wrote {out_path} ({len(prices)} series)")
+    n_rows = upsert_prices(prices)
+    upsert_meta(str(date.today()), BASE_CURRENCY)
+    print(f"Upserted {n_rows} price rows across {len(prices)} series into Supabase")
 
 if __name__ == "__main__":
     main()
