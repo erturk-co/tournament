@@ -1,5 +1,9 @@
 /* ─── config ─────────────────────────────────────────────────────────── */
-const START_DATE = "2026-06-02";
+// Lower bound for chart date axes — the earliest date across every
+// tournament (active + history), so return/price charts still cover old
+// tournaments correctly. Set from real data in loadData(); this literal is
+// just a fallback before that first load.
+let START_DATE = "2026-06-02";
 const BASE_CURRENCY = "USD";
 const COLORS = ["#4a6880","#9e6b72","#7a8f6e","#a07a3a","#6b7a8f","#8f7a6b","#b5564a","#5a7a5e"];
 const LW = window.LightweightCharts;
@@ -112,6 +116,10 @@ async function loadData() {
   ]);
 
   activeTournament = tournamentRows.find(t => t.status === "active") ?? null;
+
+  if (tournamentRows.length) {
+    START_DATE = tournamentRows.map(t => t.start_date).sort()[0];
+  }
 
   const portfoliosFor = (tournamentId) => participantRows.map(p => ({
     ...p,
