@@ -311,8 +311,18 @@ function computePortfolioReturn(participant, asOfDate = getToday()) {
   return { totalReturn: series.at(-1)?.value ?? 0, series, unresolved };
 }
 
+function formatShortDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[m - 1]} ${d}`;
+}
+
 /* ─── leaderboard ────────────────────────────────────────────────────── */
 function renderLeaderboard() {
+  if (activeTournament) {
+    document.getElementById("leaderboard-since").textContent = `Since ${formatShortDate(activeTournament.start_date)}`;
+  }
+
   const results = portfolios
     .map(p => { const { totalReturn, series } = computePortfolioReturn(p); return { p, totalReturn, series }; })
     .sort((a, b) => b.totalReturn - a.totalReturn);
