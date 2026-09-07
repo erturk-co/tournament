@@ -133,7 +133,10 @@ async function loadData() {
   historyTournaments = tournamentRows
     .filter(t => t.status !== "active")
     .sort((a, b) => b.start_date.localeCompare(a.start_date))
-    .map(t => ({ ...t, portfolios: portfoliosFor(t.id) }));
+    // unlike the active tournament (where showing everyone, allocated or
+    // not, is the point), a completed tournament's roster is closed — a
+    // participant added after it ended shouldn't appear as a phantom 0%
+    .map(t => ({ ...t, portfolios: portfoliosFor(t.id).filter(p => p.allocations.length > 0) }));
 
   priceData = {};
   priceRows.forEach(({ ticker, date, price }) => {
