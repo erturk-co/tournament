@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import urllib.parse
 import urllib.request
 from datetime import date, datetime
 from pathlib import Path
@@ -196,7 +197,7 @@ def fetch_coingecko(coingecko_tickers, start, existing_prices):
 
     for ticker, coin_id in coingecko_tickers.items():
         try:
-            url = (f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart/range"
+            url = (f"https://api.coingecko.com/api/v3/coins/{urllib.parse.quote(coin_id, safe='')}/market_chart/range"
                    f"?vs_currency=usd&from={start_unix}&to={end_unix}")
             req = urllib.request.Request(url, headers={"User-Agent": "tournament-tracker/1.0"})
             with urllib.request.urlopen(req, timeout=15) as resp:
@@ -237,7 +238,7 @@ def fetch_polymarket(poly_tickers, existing_prices):
 
         try:
             # Step 1: fetch event metadata from Gamma API
-            url = f"https://gamma-api.polymarket.com/events?slug={slug}"
+            url = f"https://gamma-api.polymarket.com/events?slug={urllib.parse.quote(slug, safe='')}"
             req = urllib.request.Request(url, headers={"User-Agent": "tournament-tracker/1.0"})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 events = json.loads(resp.read())

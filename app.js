@@ -110,7 +110,7 @@ async function loadData() {
   const [tournamentRows, participantRows, allocRows, metaRows, priceRows] = await Promise.all([
     supabaseRequest("tournaments?select=id,name,start_date,status"),
     supabaseRequest("participants?select=id,name"),
-    supabaseRequest("allocations?select=tournament_id,participant_id,effective_date,positions&order=effective_date.asc"),
+    supabaseRequest("allocations?select=tournament_id,participant_id,effective_date,positions,created_at&order=effective_date.asc"),
     supabaseRequest("meta?select=fetched_at,base_currency"),
     supabaseRequest("prices?select=ticker,date,price"),
   ]);
@@ -125,7 +125,7 @@ async function loadData() {
     ...p,
     allocations: allocRows
       .filter(a => a.tournament_id === tournamentId && a.participant_id === p.id)
-      .map(a => ({ effective_date: a.effective_date, positions: a.positions })),
+      .map(a => ({ effective_date: a.effective_date, positions: a.positions, created_at: a.created_at })),
   }));
 
   portfolios = activeTournament ? portfoliosFor(activeTournament.id) : [];
@@ -182,8 +182,8 @@ function nextWeekMonday(asOfDate = getToday()) {
 
 function effectiveAllocation(participant, asOfDate = getToday()) {
   const sorted = [...participant.allocations].sort((a, b) =>
-    a.effective_date.localeCompare(b.effective_date));
-  let current = sorted[0] ?? null;
+    a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
+  let current = null;
   let pending = null;
   for (const a of sorted) {
     if (a.effective_date <= asOfDate) current = a;
@@ -192,12 +192,17 @@ function effectiveAllocation(participant, asOfDate = getToday()) {
   return { current, pending };
 }
 
+// Returns { price, date } — the date is the actual trading day the price
+// came from (not necessarily periodStart itself, e.g. if periodStart falls
+// on a weekend/holiday), so callers can look up FX at the matching date
+// instead of silently pairing a same-currency price with a different day's
+// FX rate.
 function getBaselinePriceForPosition(pos, periodStart) {
-  if (pos.baseline_price != null) return pos.baseline_price;
+  if (pos.baseline_price != null) return { price: pos.baseline_price, date: periodStart };
   const series = priceData[pos.ticker];
   if (!series) return null;
   const dates = Object.keys(series).filter(d => d >= periodStart).sort();
-  return dates.length ? series[dates[0]] : null;
+  return dates.length ? { price: series[dates[0]], date: dates[0] } : null;
 }
 
 /* ─── nav ────────────────────────────────────────────────────────────── */
@@ -244,9 +249,18 @@ function getFXRate(ccy, date) {
 function getPositionUrl(pos) {
   const t = pos.ticker;
   if (!t) return null;
-  if (t.startsWith("POLY:")) return `https://polymarket.com/event/${t.split(":")[1]}`;
-  if (pos.coingecko_id)       return `https://www.coingecko.com/en/coins/${pos.coingecko_id}`;
+  if (t.startsWith("POLY:")) return `https://polymarket.com/event/${encodeURIComponent(t.split(":")[1] ?? "")}`;
+  if (pos.coingecko_id)       return `https://www.coingecko.com/en/coins/${encodeURIComponent(pos.coingecko_id)}`;
   return `https://finance.yahoo.com/quote/${encodeURIComponent(t)}`;
+}
+
+// Positions are submitted through a public, unauthenticated write path
+// (the Rebalance form's POST to Supabase), so every field on them is
+// untrusted and must be escaped before landing in innerHTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
 }
 
 function getPriceSeries(ticker) {
@@ -261,12 +275,12 @@ function getReturnSeries(pos, periodStart, periodEnd = null) {
   if (!series) return null;
   const baseline = getBaselinePriceForPosition(pos, periodStart);
   if (baseline == null) return null;
-  const fxBase = getFXRate(pos.currency, periodStart);
+  const fxBase = getFXRate(pos.currency, baseline.date);
   let dates = Object.keys(series).filter(d => d >= periodStart).sort();
   if (periodEnd) dates = dates.filter(d => d < periodEnd);
   return dates.map(d => {
     const fxNow = getFXRate(pos.currency, d);
-    const ret = ((series[d] * fxNow) - (baseline * fxBase)) / (baseline * fxBase);
+    const ret = ((series[d] * fxNow) - (baseline.price * fxBase)) / (baseline.price * fxBase);
     return { date: d, ret };
   });
 }
@@ -280,9 +294,16 @@ function computePortfolioReturn(participant, asOfDate = getToday()) {
   if (!dates.length) return { totalReturn: 0, series: [], unresolved: [] };
 
   const { current } = effectiveAllocation(participant, asOfDate);
+  // Sorted ascending, tie-broken by created_at: if a participant resubmits
+  // before their pending change takes effect (two rows sharing the same
+  // effective_date), the later-created one is ordered last and — since its
+  // periodEnd is the *next distinct* date — is the one that actually gets a
+  // date range; the superseded row's range collapses to empty. This lets a
+  // resubmission "replace" the prior one for display without needing to
+  // update/delete the append-only allocations table.
   const periods = [...participant.allocations]
     .filter(a => a.effective_date <= asOfDate)
-    .sort((a, b) => a.effective_date.localeCompare(b.effective_date));
+    .sort((a, b) => a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
 
   let unresolved = [];
   let carryValue = 1;
@@ -347,7 +368,7 @@ function renderLeaderboard() {
 
     tr.innerHTML = `
       <td><span class="rank-num">${i + 1}</span></td>
-      <td><span class="participant-name">${p.name}</span></td>
+      <td><span class="participant-name">${escapeHtml(p.name)}</span></td>
       <td><span class="return-val ${retClass}">${sign}${(totalReturn * 100).toFixed(2)}%</span></td>
       <td class="sparkline-cell" id="${sparkId}"></td>
     `;
@@ -417,7 +438,7 @@ function renderAllocationHistoryChart(participant) {
   const today = getToday();
   const periods = [...participant.allocations]
     .filter(a => a.effective_date <= today)
-    .sort((a, b) => a.effective_date.localeCompare(b.effective_date));
+    .sort((a, b) => a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
 
   if (!periods.length) {
     container.innerHTML = `<p class="empty-state">No allocation history yet.</p>`;
@@ -457,7 +478,7 @@ function renderAllocationHistoryChart(participant) {
   });
 
   const legend = Object.entries(colorMap).map(([key, color]) =>
-    `<span class="alloc-legend-item"><span class="alloc-legend-swatch" style="background:${color}"></span>${key}</span>`
+    `<span class="alloc-legend-item"><span class="alloc-legend-swatch" style="background:${color}"></span>${escapeHtml(key)}</span>`
   ).join("");
 
   container.innerHTML = `
@@ -550,19 +571,20 @@ function renderPositionCardGrid(gridId, positions, periodStart) {
 
     const card = document.createElement("div");
     card.className = "position-card";
+    const label = escapeHtml(pos.ticker ?? pos.raw_name);
     card.innerHTML = `
       <div class="position-card-header">
         <div>
           ${url
-            ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="position-ticker-link"><span class="position-ticker">${pos.ticker ?? pos.raw_name}</span></a>`
-            : `<span class="position-ticker">${pos.ticker ?? pos.raw_name}</span>`}
-          ${pos.ticker ? `<div class="position-name">${pos.raw_name}</div>` : ""}
+            ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="position-ticker-link"><span class="position-ticker">${label}</span></a>`
+            : `<span class="position-ticker">${label}</span>`}
+          ${pos.ticker ? `<div class="position-name">${escapeHtml(pos.raw_name)}</div>` : ""}
         </div>
-        <span class="position-meta">${pos.weight}% · ${pos.type}</span>
+        <span class="position-meta">${escapeHtml(pos.weight)}% · ${escapeHtml(pos.type)}</span>
         ${retLabel}
       </div>
       <div class="chart-wrap pos-chart-wrap" id="${chartId}"></div>
-      ${pos.notes ? `<p class="td-notes" style="padding:var(--space-sm) var(--space-sm) 0">${pos.notes}</p>` : ""}
+      ${pos.notes ? `<p class="td-notes" style="padding:var(--space-sm) var(--space-sm) 0">${escapeHtml(pos.notes)}</p>` : ""}
     `;
     grid.appendChild(card);
 
@@ -609,7 +631,7 @@ function renderPortfolios() {
 
     card.innerHTML = `
       <div class="portfolio-card-header">
-        <h2>${p.name}</h2>
+        <h2>${escapeHtml(p.name)}</h2>
       </div>
       ${current ? renderAllocationTable(current.positions) : `<p class="empty-state">No allocation submitted yet.</p>`}
       ${pending ? `
@@ -635,19 +657,19 @@ function renderAllocationTable(positions) {
       <tbody>
         ${positions.map(pos => `
           <tr>
-            <td>${pos.raw_name}</td>
+            <td>${escapeHtml(pos.raw_name)}</td>
             <td class="td-ticker">${pos.ticker
-              ? `<a href="${getPositionUrl(pos)}" target="_blank" rel="noopener noreferrer" class="ticker-link">${pos.ticker}</a>`
+              ? `<a href="${escapeHtml(getPositionUrl(pos))}" target="_blank" rel="noopener noreferrer" class="ticker-link">${escapeHtml(pos.ticker)}</a>`
               : "—"}</td>
-            <td>${pos.type}</td>
-            <td class="td-ticker">${pos.currency}</td>
-            <td class="td-weight">${pos.weight}%</td>
+            <td>${escapeHtml(pos.type)}</td>
+            <td class="td-ticker">${escapeHtml(pos.currency)}</td>
+            <td class="td-weight">${escapeHtml(pos.weight)}%</td>
             <td class="weight-bar-cell">
               <div class="weight-bar-wrap">
-                <div class="weight-bar-fill" style="width:${Math.min(pos.weight, 100)}%"></div>
+                <div class="weight-bar-fill" style="width:${Math.min(Number(pos.weight) || 0, 100)}%"></div>
               </div>
             </td>
-            <td class="td-notes">${pos.notes || ""}</td>
+            <td class="td-notes">${escapeHtml(pos.notes || "")}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -672,8 +694,8 @@ function renderHistory() {
     return `
       <div class="history-tournament">
         <div class="history-tournament-header">
-          <h2>${t.name}</h2>
-          <span class="subtitle">started ${t.start_date}</span>
+          <h2>${escapeHtml(t.name)}</h2>
+          <span class="subtitle">started ${escapeHtml(t.start_date)}</span>
         </div>
         <table class="leaderboard-table">
           <thead><tr>
@@ -686,7 +708,7 @@ function renderHistory() {
               return `
                 <tr class="${i === 0 ? "rank-1" : ""}">
                   <td><span class="rank-num">${i + 1}</span></td>
-                  <td><span class="participant-name">${p.name}</span></td>
+                  <td><span class="participant-name">${escapeHtml(p.name)}</span></td>
                   <td><span class="return-val ${retClass}">${sign}${(totalReturn * 100).toFixed(2)}%</span></td>
                 </tr>`;
             }).join("")}
@@ -697,7 +719,7 @@ function renderHistory() {
             const { current } = effectiveAllocation(p);
             return `
               <div class="portfolio-card">
-                <div class="portfolio-card-header"><h2>${p.name}</h2></div>
+                <div class="portfolio-card-header"><h2>${escapeHtml(p.name)}</h2></div>
                 ${current ? renderAllocationTable(current.positions) : `<p class="empty-state">No allocation recorded.</p>`}
               </div>`;
           }).join("")}
@@ -713,7 +735,7 @@ let rebalanceDraft = [];
 
 function setupRebalancePage() {
   const select = document.getElementById("rebalance-participant");
-  select.innerHTML = portfolios.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+  select.innerHTML = portfolios.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
   select.addEventListener("change", () => loadRebalanceParticipant(select.value));
 
   document.getElementById("rebalance-add-row").addEventListener("click", () => {
@@ -824,8 +846,8 @@ function showTickerSuggestions(rowIndex, inputEl, data) {
   } else {
     box.innerHTML = data.map((q, i) => `
       <div class="ticker-suggestion" data-i="${i}">
-        <strong>${q.symbol}</strong> ${q.name || ""}
-        <span class="ticker-suggestion-meta">${q.exchDisp || q.exchange || ""}</span>
+        <strong>${escapeHtml(q.symbol)}</strong> ${escapeHtml(q.name || "")}
+        <span class="ticker-suggestion-meta">${escapeHtml(q.exchDisp || q.exchange || "")}</span>
       </div>
     `).join("");
     box.querySelectorAll(".ticker-suggestion").forEach(el => {
@@ -852,8 +874,8 @@ function showPolymarketSuggestions(rowIndex, inputEl, data) {
   } else {
     box.innerHTML = data.outcomes.map((o, i) => `
       <div class="ticker-suggestion" data-i="${i}">
-        <strong>${o.label}</strong>
-        <span class="ticker-suggestion-meta">$${o.price.toFixed(3)}</span>
+        <strong>${escapeHtml(o.label)}</strong>
+        <span class="ticker-suggestion-meta">$${Number(o.price).toFixed(3)}</span>
       </div>
     `).join("");
     box.querySelectorAll(".ticker-suggestion").forEach(el => {
@@ -901,13 +923,13 @@ function renderRebalanceTable() {
   const tbody = document.getElementById("rebalance-tbody");
   tbody.innerHTML = rebalanceDraft.map((pos, i) => `
     <tr>
-      <td><input data-index="${i}" data-field="raw_name" placeholder="search name or ticker…" value="${pos.raw_name ?? ""}"></td>
-      <td><input data-index="${i}" data-field="ticker" placeholder="search name or ticker…" value="${pos.ticker ?? ""}"></td>
-      <td><input data-index="${i}" data-field="type" value="${pos.type ?? ""}"></td>
-      <td><input data-index="${i}" data-field="exchange" value="${pos.exchange ?? ""}"></td>
-      <td><input data-index="${i}" data-field="currency" value="${pos.currency ?? ""}"></td>
-      <td><input data-index="${i}" data-field="weight" type="number" step="0.01" value="${pos.weight ?? 0}"></td>
-      <td><input data-index="${i}" data-field="notes" value="${pos.notes ?? ""}"></td>
+      <td><input data-index="${i}" data-field="raw_name" placeholder="search name or ticker…" value="${escapeHtml(pos.raw_name ?? "")}"></td>
+      <td><input data-index="${i}" data-field="ticker" placeholder="search name or ticker…" value="${escapeHtml(pos.ticker ?? "")}"></td>
+      <td><input data-index="${i}" data-field="type" value="${escapeHtml(pos.type ?? "")}"></td>
+      <td><input data-index="${i}" data-field="exchange" value="${escapeHtml(pos.exchange ?? "")}"></td>
+      <td><input data-index="${i}" data-field="currency" value="${escapeHtml(pos.currency ?? "")}"></td>
+      <td><input data-index="${i}" data-field="weight" type="number" step="0.01" value="${escapeHtml(pos.weight ?? 0)}"></td>
+      <td><input data-index="${i}" data-field="notes" value="${escapeHtml(pos.notes ?? "")}"></td>
       <td><button class="rebalance-row-remove" data-index="${i}" type="button" title="Remove">✕</button></td>
     </tr>
   `).join("");
