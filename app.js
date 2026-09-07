@@ -318,7 +318,11 @@ function computePortfolioReturn(participant, asOfDate = getToday()) {
     const totalWeight = period.positions.reduce((s, p) => s + (p.weight || 0), 0);
     const resolved    = period.positions.filter(p => p.ticker && priceData[p.ticker]);
     if (period === current) {
-      unresolved = period.positions.filter(p => !p.ticker || !priceData[p.ticker]);
+      // a blank ticker is a deliberate cash/0%-return position (already
+      // handled correctly in the return math below via totalWeight) — only
+      // flag positions that HAVE a ticker but no matching price data, since
+      // that's an actual data problem worth warning about
+      unresolved = period.positions.filter(p => p.ticker && !priceData[p.ticker]);
     }
 
     const posSeries = resolved.map(pos => ({
