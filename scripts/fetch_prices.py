@@ -21,28 +21,43 @@ BASE_CURRENCY = "USD"
 # never moved as new rounds were added.
 DEFAULT_START = "2026-06-02"
 
-# Must stay in sync with SUFFIX_CURRENCY in app.js. The stored `currency` field
-# on a position is unreliable (the rebalance form defaults it to USD for any
-# exchange it doesn't recognise), so FX pairs are derived from the ticker
-# suffix as well — otherwise the CHF/ILS/GBP rates those holdings need are
-# never fetched at all and the site silently prices them at parity.
+# Mirrors SUFFIX_CURRENCY in app.js and is used for the same reason: the
+# stored `currency` on a position is unreliable (the rebalance form defaults it
+# to USD for any exchange it doesn't recognise), so the FX pairs a portfolio
+# needs have to be derived from the ticker. Without this the CHF/ILS/GBP rates
+# were never fetched at all and the site silently priced those holdings at par.
+#
+# This is only the fallback. Yahoo reports each instrument's real currency and
+# a venue is not one currency — London quotes 3SMO.L in USD, SNV3.L in pence
+# and VUSA.L in pounds — so record_ticker_currencies() stores the authoritative
+# value per ticker and app.js prefers it.
 SUFFIX_CURRENCY = {
-    ".IS": "TRY", ".SW": "CHF", ".TA": "ILS", ".L": "GBP",
+    ".IS": "TRY", ".SW": "CHF", ".TA": "ILA", ".L": "GBp",
     ".MI": "EUR", ".DE": "EUR", ".PA": "EUR", ".AS": "EUR", ".BR": "EUR", ".MC": "EUR",
     ".KS": "KRW", ".KQ": "KRW", ".T": "JPY", ".HK": "HKD",
     ".ST": "SEK", ".OL": "NOK", ".CO": "DKK",
     ".TO": "CAD", ".AX": "AUD", ".NS": "INR", ".SA": "BRL",
 }
 
+# Venues that quote in a sub-unit. There is no FX pair for a sub-unit, so these
+# map to the major currency; app.js applies the /100 on its side.
+# Deliberately NOT the same values as app.js's SUFFIX_CURRENCY: asking Yahoo for
+# "GBpUSD=X" or "ILAUSD=X" returns nothing at all.
+SUBUNIT_MAJOR = {"GBp": "GBP", "ILA": "ILS", "ZAc": "ZAR"}
 
-def currency_for(pos):
+
+def fx_currency_for(pos, recorded=None):
+    """The currency whose USD pair this position needs."""
     ticker = pos.get("ticker") or ""
-    for suffix, ccy in SUFFIX_CURRENCY.items():
-        if ticker.endswith(suffix):
-            return ccy
-    # app.js models London in pence (GBp); the FX pair is still GBPUSD=X.
-    ccy = pos.get("currency") or BASE_CURRENCY
-    return "GBP" if ccy == "GBp" else ccy
+    ccy = (recorded or {}).get(ticker)
+    if not ccy:
+        for suffix, suffix_ccy in SUFFIX_CURRENCY.items():
+            if ticker.endswith(suffix):
+                ccy = suffix_ccy
+                break
+    if not ccy:
+        ccy = pos.get("currency") or BASE_CURRENCY
+    return SUBUNIT_MAJOR.get(ccy, ccy)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -92,7 +107,53 @@ def load_start_date():
     dates = sorted(r["start_date"] for r in rows if r.get("start_date"))
     return dates[0] if dates else DEFAULT_START
 
-def collect_tickers(allocations):
+def load_ticker_currencies():
+    """Recorded ticker -> currency, empty if the ticker_meta migration hasn't run."""
+    try:
+        rows = supabase_get_all("ticker_meta?select=ticker,currency")
+    except Exception as e:
+        print(f"  note: ticker_meta unavailable ({e}) — falling back to suffix guesses")
+        return {}
+    return {r["ticker"]: r["currency"] for r in rows if r.get("currency")}
+
+
+def record_ticker_currencies(yf_tickers, known):
+    """Ask Yahoo for the real currency of any ticker we haven't recorded yet.
+
+    Yahoo's `currency` field is the only reliable source — a venue is not one
+    currency, and the suffix guess is wrong for London (mixed GBp/GBP/USD) and
+    for Tel Aviv (agorot, not shekels). One call per *new* ticker only, so the
+    hourly job costs nothing once the table is warm.
+    """
+    missing = [t for t in yf_tickers if t not in known]
+    if not missing:
+        return known
+    print(f"Resolving currency for {len(missing)} new ticker(s)...")
+    resolved = {}
+    for ticker in missing:
+        try:
+            info = yf.Ticker(ticker).fast_info
+            ccy = getattr(info, "currency", None) or (info.get("currency") if hasattr(info, "get") else None)
+            if ccy:
+                resolved[ticker] = ccy
+                print(f"  {ticker}: {ccy}")
+            else:
+                print(f"  WARNING: no currency reported for {ticker}")
+        except Exception as e:
+            print(f"  WARNING: currency lookup failed for {ticker}: {e}")
+    if resolved:
+        try:
+            supabase_request(
+                "ticker_meta", method="POST",
+                body=[{"ticker": t, "currency": c} for t, c in resolved.items()],
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+        except Exception as e:
+            print(f"  WARNING: could not persist ticker_meta ({e})")
+    return {**known, **resolved}
+
+
+def collect_tickers(allocations, recorded=None):
     yf_tickers = set()
     poly_tickers = set()
     coingecko_tickers = {}  # ticker -> coingecko_id
@@ -108,7 +169,7 @@ def collect_tickers(allocations):
                 coingecko_tickers[t] = pos["coingecko_id"]
             else:
                 yf_tickers.add(t)
-            ccy = currency_for(pos)
+            ccy = fx_currency_for(pos, recorded)
             if ccy and ccy != BASE_CURRENCY:
                 fx_pairs.add(f"{ccy}USD=X")
     return sorted(yf_tickers), sorted(poly_tickers), coingecko_tickers, sorted(fx_pairs)
@@ -355,7 +416,12 @@ def main():
     start = load_start_date()
     print(f"Fetch window starts {start}")
     allocations = load_allocations()
-    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations)
+    recorded = load_ticker_currencies()
+    yf_only, _, _, _ = collect_tickers(allocations, recorded)
+    recorded = record_ticker_currencies(yf_only, recorded)
+    # Re-derive with the freshly resolved currencies so a brand-new foreign
+    # holding gets its FX pair on the same run it's first seen.
+    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations, recorded)
     print(f"FX pairs needed: {', '.join(fx_pairs) or 'none'}")
     existing = load_existing_prices()
 
@@ -367,7 +433,10 @@ def main():
 
     # A ticker with no series is scored as a total loss by the site, so an
     # empty fetch is a loud problem, not a footnote.
-    empty = sorted(t for t in yf_tickers + sorted(coingecko_tickers) + poly_tickers
+    # FX pairs are included deliberately: a failed FX download used to print one
+    # inner warning and nothing else, which is the exact silence this block
+    # exists to end.
+    empty = sorted(t for t in yf_tickers + fx_pairs + sorted(coingecko_tickers) + poly_tickers
                    if not prices.get(t) and not existing.get(t))
     if empty:
         print(f"\n!! {len(empty)} ticker(s) have NO price data anywhere — these score -100%:")

@@ -59,6 +59,8 @@ export async function bootApp(tables) {
   async function fakeFetch(url, opts = {}) {
     const table = String(url).split("/rest/v1/")[1]?.split("?")[0];
     let rows = tables[table];
+    // A missing table must reject, the way PostgREST 404s a table that the
+    // migration hasn't created — app.js relies on that to degrade gracefully.
     if (!rows) throw new Error(`no fixture for table "${table}"`);
     const range = opts.headers?.Range;
     if (range) {
@@ -82,7 +84,7 @@ export async function bootApp(tables) {
     + `\nglobalThis.__boot = async () => { await loadData();
          return { portfolios, activeTournament, historyTournaments, activeWindow,
                   computePortfolioReturn, effectiveAllocation, classifyPosition,
-                  windowFor, currencyFor, missingFXCodes }; };`;
+                  windowFor, currencyFor, getFXRate, tickerCurrency }; };`;
 
   vm.runInContext(src, ctx, { filename: "app.js" });
   return ctx.__boot();

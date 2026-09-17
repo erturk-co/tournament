@@ -125,7 +125,7 @@ let activeWindow = null;
 
 /* ─── init ───────────────────────────────────────────────────────────── */
 async function loadData() {
-  const [tournamentRows, participantRows, allocRows, metaRows, priceRows] = await Promise.all([
+  const [tournamentRows, participantRows, allocRows, metaRows, priceRows, tickerMetaRows] = await Promise.all([
     // `select=*` rather than naming columns: `end_date` is added by a manual
     // migration (see supabase/schema.sql), and PostgREST 400s on a named
     // column that doesn't exist yet — which would take the whole site down
@@ -138,6 +138,9 @@ async function loadData() {
     supabaseRequest("allocations?select=tournament_id,participant_id,effective_date,positions,created_at&order=effective_date.asc"),
     supabaseRequest("meta?select=fetched_at,base_currency"),
     supabaseRequest("prices?select=ticker,date,price"),
+    // Same migration as end_date. Missing table resolves to null rather than
+    // failing the load, so the site works before the SQL is run.
+    supabaseRequest("ticker_meta?select=ticker,currency").catch(() => null),
   ]);
 
   activeTournament = tournamentRows.find(t => t.status === "active") ?? null;
@@ -163,6 +166,14 @@ async function loadData() {
   priceData = {};
   priceRows.forEach(({ ticker, date, price }) => {
     (priceData[ticker] ??= {})[date] = price;
+  });
+
+  // Populated by fetch_prices.py from Yahoo's own `currency` field. Absent
+  // until the ticker_meta migration runs, in which case currencyFor() falls
+  // back to the suffix guess.
+  tickerCurrency = {};
+  tickerMetaRows?.forEach(({ ticker, currency }) => {
+    if (currency) tickerCurrency[ticker] = currency;
   });
 
   const meta = metaRows[0];
@@ -288,14 +299,25 @@ function getDates(win) {
   return [...all].filter(d => withinWindow(d, win)).sort();
 }
 
-// Yahoo ticker suffixes are authoritative about an instrument's trading
-// currency; the stored `currency` field is not. The rebalance form defaults
-// it to USD whenever the exchange code isn't in EXCHANGE_CURRENCY, which
-// silently priced every Swiss, Israeli and UK holding as if it were dollars.
-// Inferring from the suffix repairs existing rows without having to rewrite
-// them — `allocations` is append-only by design.
+// Some venues quote in a sub-unit of their currency, and there is no FX pair
+// for a sub-unit — London in pence, Tel Aviv in agorot, Johannesburg in cents.
+// Convert to the major unit and scale. This cancels out of a return ratio
+// (both ends get the same divisor) but keeps the model honest, and matters the
+// moment anything displays a converted level.
+const SUBUNIT = { GBp: ["GBP", 100], ILA: ["ILS", 100], ZAc: ["ZAR", 100] };
+
+// Ticker -> the currency Yahoo actually reports, recorded by fetch_prices.py.
+// This is the only reliable source: a venue is not one currency. London alone
+// quotes 3SMO.L in USD, SNV3.L in pence and VUSA.L in pounds, and the stored
+// `currency` on a position says "USD" for all three because the rebalance form
+// defaults it whenever the exchange code isn't recognised.
+let tickerCurrency = {};
+
+// Fallback for tickers the fetcher hasn't recorded yet. A suffix is a decent
+// guess for single-currency venues and a bad one for London, which is why the
+// recorded value wins whenever it exists.
 const SUFFIX_CURRENCY = {
-  ".IS": "TRY", ".SW": "CHF", ".TA": "ILS", ".L": "GBp",
+  ".IS": "TRY", ".SW": "CHF", ".TA": "ILA", ".L": "GBp",
   ".MI": "EUR", ".DE": "EUR", ".PA": "EUR", ".AS": "EUR", ".BR": "EUR", ".MC": "EUR",
   ".KS": "KRW", ".KQ": "KRW", ".T": "JPY", ".HK": "HKD",
   ".ST": "SEK", ".OL": "NOK", ".CO": "DKK",
@@ -304,31 +326,39 @@ const SUFFIX_CURRENCY = {
 
 function currencyFor(pos) {
   const ticker = pos.ticker || "";
+  if (tickerCurrency[ticker]) return tickerCurrency[ticker];
   for (const [suffix, ccy] of Object.entries(SUFFIX_CURRENCY)) {
     if (ticker.endsWith(suffix)) return ccy;
   }
   return pos.currency || BASE_CURRENCY;
 }
 
-// Currencies we had to price at parity because no FX series exists yet.
-// Surfaced in the UI rather than silently applied — the old code returned 1
-// with no trace, which is how five foreign holdings came to be scored in the
-// wrong currency without anyone noticing.
-const missingFXCodes = new Set();
-
-function getFXRate(ccy, date) {
+// Currencies priced at parity because no FX series exists yet. Collected per
+// computation and reported alongside the result, never as a module-level
+// global: a global leaked one participant's missing rates onto everybody
+// else's page and outlived the condition that set it.
+function getFXRate(ccy, date, missing = null) {
   if (!ccy || ccy === BASE_CURRENCY) return 1;
-  // London quotes in pence, not pounds. This cancels out of a return ratio
-  // (both ends get the same divisor) but keeps the model honest.
-  const pence = ccy === "GBp";
-  const code = pence ? "GBP" : ccy;
+  const [code, scale] = SUBUNIT[ccy] ?? [ccy, 1];
   const series = priceData[`${code}USD=X`];
-  const closest = series && Object.keys(series).sort().filter(d => d <= date).pop();
+  const closest = series && sortedDates(series).filter(d => d <= date).pop();
   if (!closest) {
-    missingFXCodes.add(code);
-    return 1;
+    missing?.add(code);
+    return 1 / scale;   // same units as the normal path, so parity still cancels
   }
-  return pence ? series[closest] / 100 : series[closest];
+  return series[closest] / scale;
+}
+
+// Object.keys().sort() on every FX lookup is two sorts per position per date.
+// The series only changes when loadData runs, so cache it there.
+const sortedDateCache = new WeakMap();
+function sortedDates(series) {
+  let dates = sortedDateCache.get(series);
+  if (!dates) {
+    dates = Object.keys(series).sort();
+    sortedDateCache.set(series, dates);
+  }
+  return dates;
 }
 
 function getPositionUrl(pos) {
@@ -355,24 +385,24 @@ function getPriceSeries(ticker, win) {
     .map(d => ({ time: d, value: series[d] }));
 }
 
-function getReturnSeries(pos, periodStart, periodEnd, win) {
+function getReturnSeries(pos, periodStart, periodEnd, win, missing = null) {
   const series = priceData[pos.ticker];
   if (!series) return null;
   const baseline = getBaselinePriceForPosition(pos, periodStart, win);
   if (baseline == null) return null;
 
   const ccy     = currencyFor(pos);
-  const fxBase  = getFXRate(ccy, baseline.date);
+  const fxBase  = getFXRate(ccy, baseline.date, missing);
   const divisor = baseline.price * fxBase;
   if (!(divisor > 0)) return null;   // never divide by zero — see the baseline resolver
 
-  let dates = Object.keys(series).filter(d => d >= periodStart && withinWindow(d, win)).sort();
+  let dates = sortedDates(series).filter(d => d >= periodStart && withinWindow(d, win));
   if (periodEnd) dates = dates.filter(d => d < periodEnd);
   if (!dates.length) return null;    // delisted or not yet trading in this window
 
   return dates.map(d => ({
     date: d,
-    ret: ((series[d] * getFXRate(ccy, d)) - divisor) / divisor,
+    ret: ((series[d] * getFXRate(ccy, d, missing)) - divisor) / divisor,
   }));
 }
 
@@ -399,14 +429,14 @@ function awaitingFirstPrices(period) {
 //              (unknown ticker, no prices in the window, or a settled market
 //              whose baseline is 0). Previously these silently contributed 0%,
 //              so a delisted holding looked like a harmless cash sleeve.
-function classifyPosition(pos, periodStart, periodEnd, win, period = null) {
+function classifyPosition(pos, periodStart, periodEnd, win, period = null, missing = null) {
   if (!pos.ticker) return { kind: "cash" };
   if (!priceData[pos.ticker]) {
     return awaitingFirstPrices(period)
       ? { kind: "awaiting", reason: "waiting for the next hourly price refresh" }
       : { kind: "dead", reason: "no price data for this ticker" };
   }
-  const ret = getReturnSeries(pos, periodStart, periodEnd, win);
+  const ret = getReturnSeries(pos, periodStart, periodEnd, win, missing);
   if (!ret) return { kind: "dead", reason: "no usable price in this tournament's window" };
   return { kind: "scored", ret };
 }
@@ -449,6 +479,7 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
 
   const dead = [];
   const awaiting = [];
+  const missingFX = new Set();
   let carryValue = 1;
   const series = [];
 
@@ -463,23 +494,36 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
     const weightOf    = p => Number(p.weight) || 0;
     const totalWeight = period.positions.reduce((s, p) => s + weightOf(p), 0) || 100;
 
+    const periodDates = dates.filter(d => d >= periodStart && (!periodEnd || d < periodEnd));
+    // A resubmission on the same effective_date collapses the superseded row's
+    // range to nothing. Such a row contributes no dates and so no return — and
+    // it must contribute no *reporting* either. Classifying it would mark every
+    // one of its positions dead (there are no prices inside an empty range) and
+    // attribute another participant's discarded tickers to this one.
+    if (!periodDates.length) return;
+
     const entries = period.positions.map(pos => ({
       pos,
       weight: weightOf(pos) / totalWeight,
-      ...classifyPosition(pos, periodStart, periodEnd, win, period),
+      ...classifyPosition(pos, periodStart, periodEnd, win, period, missingFX),
     }));
 
-    // Collected across every period, not just the current one. A dead position
-    // in a superseded period is baked permanently into carryValue, so leaving
-    // it out of the report meant a portfolio could carry a large unexplained
-    // loss with an empty warning banner and all-green position cards.
+    // Collected across every period that actually scored, not just the current
+    // one. A dead position in an earlier period is baked permanently into
+    // carryValue, so leaving it out meant a portfolio could carry a large
+    // unexplained loss with an empty warning banner and all-green cards.
+    // Deduped by ticker, tagged with the earliest period it hurt.
     const tag = period === current ? null : periodStart;
     entries.forEach(e => {
-      if (e.kind === "dead")     dead.push({ pos: e.pos, reason: e.reason, since: tag });
-      if (e.kind === "awaiting") awaiting.push({ pos: e.pos, reason: e.reason });
+      const key = e.pos.ticker || e.pos.raw_name;
+      if (e.kind === "dead" && !dead.some(d => (d.pos.ticker || d.pos.raw_name) === key)) {
+        dead.push({ pos: e.pos, reason: e.reason, since: tag });
+      }
+      if (e.kind === "awaiting" && !awaiting.some(a => (a.pos.ticker || a.pos.raw_name) === key)) {
+        awaiting.push({ pos: e.pos, reason: e.reason });
+      }
     });
 
-    const periodDates = dates.filter(d => d >= periodStart && (!periodEnd || d < periodEnd));
     let lastMultiplier = 1;
     periodDates.forEach(date => {
       let val = 0;
@@ -496,7 +540,7 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
     carryValue *= lastMultiplier;
   });
 
-  return { totalReturn: series.at(-1)?.value ?? 0, series, dead, awaiting };
+  return { totalReturn: series.at(-1)?.value ?? 0, series, dead, awaiting, missingFX: [...missingFX] };
 }
 
 function formatShortDate(dateStr) {
@@ -600,7 +644,7 @@ function showDetail(participant, win = activeWindow) {
   document.getElementById("page-detail").classList.add("active");
   document.getElementById("detail-name").textContent = participant.name;
 
-  const { series, dead, awaiting } = computePortfolioReturn(participant, win);
+  const { series, dead, awaiting, missingFX } = computePortfolioReturn(participant, win);
 
   const warn  = document.getElementById("detail-warning");
   const notes = [];
@@ -615,8 +659,8 @@ function showDetail(participant, win = activeWindow) {
     const named = awaiting.map(a => a.pos.ticker || a.pos.raw_name || "unknown");
     notes.push(`${awaiting.length} newly added position(s) not scored yet, awaiting the next hourly price refresh: ${named.join(", ")}`);
   }
-  if (missingFXCodes.size) {
-    notes.push(`No FX rate yet for ${[...missingFXCodes].join(", ")} — those holdings are shown at local-currency return until the next price refresh.`);
+  if (missingFX.length) {
+    notes.push(`No FX rate yet for ${missingFX.join(", ")} — those holdings are shown at local-currency return until the next price refresh.`);
   }
   warn.style.display = notes.length ? "block" : "none";
   warn.textContent   = notes.join(" · ");
@@ -874,7 +918,7 @@ function renderAllocationTable(positions) {
               ? `<a href="${escapeHtml(getPositionUrl(pos))}" target="_blank" rel="noopener noreferrer" class="ticker-link">${escapeHtml(pos.ticker)}</a>`
               : "—"}</td>
             <td>${escapeHtml(pos.type)}</td>
-            <td class="td-ticker">${escapeHtml(pos.currency)}</td>
+            <td class="td-ticker">${escapeHtml(currencyFor(pos))}</td>
             <td class="td-weight">${escapeHtml(pos.weight)}%</td>
             <td class="weight-bar-cell">
               <div class="weight-bar-wrap">
@@ -996,9 +1040,9 @@ const EXCHANGE_CURRENCY = {
   KSC: "KRW", KOE: "KRW", // Korea Exchange
   MIL: "EUR",             // Borsa Italiana / Milan
   EBS: "CHF", VTX: "CHF", // SIX Swiss / Virt-X
-  TLV: "ILS",             // Tel Aviv
-  LSE: "GBp",             // London (quotes in pence)
-  AMS: "EUR", PAR: "EUR", GER: "EUR", FRA: "EUR", MCE: "EUR",
+  TLV: "ILA",             // Tel Aviv (quotes in agorot, 1/100 shekel)
+  LSE: "GBp",             // London (usually pence — but see tickerCurrency)
+  AMS: "EUR", PAR: "EUR", GER: "EUR", FRA: "EUR", MCE: "EUR", BRU: "EUR",
   STO: "SEK", OSL: "NOK", CPH: "DKK",
   TOR: "CAD", ASX: "AUD", NSI: "INR", SAO: "BRL",
   HKG: "HKD", JPX: "JPY",

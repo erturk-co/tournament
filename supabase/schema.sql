@@ -109,3 +109,24 @@ alter table tournaments add column if not exists end_date date;
 update tournaments set end_date = '2026-09-02' where id = 't-2026-06';
 
 -- t-2026-09 deliberately keeps end_date null — it's still running.
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Migration 2026-09-16b: authoritative per-ticker currency
+--
+-- A venue is not one currency. London quotes 3SMO.L in USD, SNV3.L in pence
+-- and VUSA.L in pounds, and Tel Aviv quotes in agorot rather than shekels, so
+-- guessing from the ticker suffix mis-prices real holdings by 100x. Yahoo
+-- reports the true currency per instrument; fetch_prices.py records it here
+-- once per ticker and app.js prefers it over the suffix guess.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create table if not exists ticker_meta (
+  ticker text primary key,
+  currency text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table ticker_meta enable row level security;
+create policy "ticker_meta: public read" on ticker_meta for select using (true);
+-- Writes only via the service_role key in fetch_prices.py, which bypasses RLS.

@@ -28,9 +28,18 @@ for (const [ticker, s] of Object.entries(series)) {
   for (const [date, price] of Object.entries(s)) prices.push({ ticker, date, price });
 }
 
+// GBPUSD at 1.30 exercises the sub-unit path; a London ticker recorded as USD
+// exercises the recorded-currency override.
+for (const date of ["2026-09-14", "2026-09-15", "2026-09-16"]) {
+  prices.push({ ticker: "GBPUSD=X", date, price: 1.3 });
+  prices.push({ ticker: "PENCE.L", date, price: 100 });
+  prices.push({ ticker: "DOLLAR.L", date, price: 100 });
+}
+
 const synth = await bootApp({
   tournaments: [{ id: "t", name: "T", start_date: "2026-09-14", end_date: null, status: "active" }],
   participants: [], allocations: [], meta, prices,
+  ticker_meta: [{ ticker: "DOLLAR.L", currency: "USD" }],
 });
 const run = (allocations) => synth.computePortfolioReturn({ id: "p", name: "P", allocations }, WIN);
 const kind = (ticker, created_at = OLD) =>
@@ -69,6 +78,32 @@ console.log("\nreporting — a dead position in a superseded period must still s
   eq("past-period dead is reported", past.dead.length, 1);
   eq("…tagged with the period it was held from", past.dead[0].since, "2026-09-14");
 }
+
+console.log("\n…but a REPLACED row (same effective_date) must report nothing");
+{
+  // Two rows on the same date: the later one wins and the earlier one's range
+  // collapses to empty. The discarded row's tickers are not this portfolio's
+  // holdings and must not be attributed to it.
+  const resub = run([
+    { ...alloc([P("DISCARDED", 100)]), created_at: "2026-09-01T00:00:00+00:00" },
+    { ...alloc([P("GOOD", 100)]),      created_at: "2026-09-02T00:00:00+00:00" },
+  ]);
+  near("only the surviving row scores", resub.totalReturn * 100, 10);
+  eq("the discarded row reports no dead positions", resub.dead.length, 0);
+  eq("…and no awaiting positions", resub.awaiting.length, 0);
+}
+
+console.log("\ncurrency — a venue is not one currency");
+eq("unrecorded .L falls back to pence", synth.currencyFor({ ticker: "PENCE.L", currency: "USD" }), "GBp");
+eq("recorded currency overrides the suffix guess",
+  synth.currencyFor({ ticker: "DOLLAR.L", currency: "USD" }), "USD");
+eq("Tel Aviv is agorot, not shekels", synth.currencyFor({ ticker: "AMOT.TA", currency: "USD" }), "ILA");
+near("GBp converts at GBP/100", synth.getFXRate("GBp", "2026-09-16"), 0.013, 0.0001);
+near("GBP converts at par-rate",  synth.getFXRate("GBP", "2026-09-16"), 1.3, 0.0001);
+// No ILSUSD=X in the fixture, so the fallback must stay unit-consistent:
+// 1/100, not 1, or the parity path silently changes the instrument's scale.
+near("missing sub-unit FX still falls back in sub-units",
+  synth.getFXRate("ILA", "2026-09-16"), 0.01, 0.0001);
 
 console.log("\nweight handling");
 near("string weights behave like numbers",
@@ -126,9 +161,18 @@ for (const t of live.historyTournaments) {
     t.portfolios.every(p => live.computePortfolioReturn(p, win).series.every(s => s.date <= win.end)));
 }
 
-if (live.missingFXCodes.size) {
-  console.log(`\n  note  no FX series yet for ${[...live.missingFXCodes].join(", ")} — ` +
-              `those holdings price at parity until the next fetch_prices run`);
+console.log("\nlive data — the FX warning is scoped to the holder");
+{
+  const withMissing = ranked.filter(r => r.missingFX.length);
+  ok("nobody is warned about a currency they don't hold",
+    withMissing.every(r => {
+      const held = new Set(live.effectiveAllocation(r.p).current.positions.map(p => live.currencyFor(p)));
+      const majors = new Set([...held].map(c => ({ GBp: "GBP", ILA: "ILS", ZAc: "ZAR" })[c] ?? c));
+      return r.missingFX.every(c => majors.has(c));
+    }),
+    withMissing.map(r => `${r.p.name}: ${r.missingFX.join("/")}`).join(", "));
+  const names = withMissing.map(r => `${r.p.name} (${r.missingFX.join(", ")})`);
+  console.log(`  note  unpriced FX affects: ${names.join("; ") || "nobody"}`);
 }
 
 done();
