@@ -169,6 +169,29 @@ main { max-width: 960px; margin: 0 auto; padding: var(--space-xl) var(--space-lg
 
 .sparkline-cell { line-height: 0; }
 
+/* Participants who haven't submitted an allocation — named below the table
+   rather than ranked inside it as phantom 0.00% rows. */
+.leaderboard-note {
+  margin-top: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-light);
+  letter-spacing: 0.02em;
+}
+
+.leaderboard-note:empty { display: none; }
+
+/* Marks a return that includes an unscoreable position, so a data artefact
+   isn't read as a market move. */
+.return-flag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-light);
+  margin-left: 4px;
+  cursor: help;
+  vertical-align: super;
+}
+
 /* ─── detail page ────────────────────────────────────────────────────── */
 .back-btn {
   background: none;

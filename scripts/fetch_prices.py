@@ -14,8 +14,50 @@ except ImportError:
 
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
-START = "2026-06-02"
 BASE_CURRENCY = "USD"
+
+# Fallback only — the real value comes from the earliest tournament start_date
+# in the database (see load_start_date). Hardcoding it meant the fetch window
+# never moved as new rounds were added.
+DEFAULT_START = "2026-06-02"
+
+# Mirrors SUFFIX_CURRENCY in app.js and is used for the same reason: the
+# stored `currency` on a position is unreliable (the rebalance form defaults it
+# to USD for any exchange it doesn't recognise), so the FX pairs a portfolio
+# needs have to be derived from the ticker. Without this the CHF/ILS/GBP rates
+# were never fetched at all and the site silently priced those holdings at par.
+#
+# This is only the fallback. Yahoo reports each instrument's real currency and
+# a venue is not one currency — London quotes 3SMO.L in USD, SNV3.L in pence
+# and VUSA.L in pounds — so record_ticker_currencies() stores the authoritative
+# value per ticker and app.js prefers it.
+SUFFIX_CURRENCY = {
+    ".IS": "TRY", ".SW": "CHF", ".TA": "ILA", ".L": "GBp",
+    ".MI": "EUR", ".DE": "EUR", ".PA": "EUR", ".AS": "EUR", ".BR": "EUR", ".MC": "EUR",
+    ".KS": "KRW", ".KQ": "KRW", ".T": "JPY", ".HK": "HKD",
+    ".ST": "SEK", ".OL": "NOK", ".CO": "DKK",
+    ".TO": "CAD", ".AX": "AUD", ".NS": "INR", ".SA": "BRL",
+}
+
+# Venues that quote in a sub-unit. There is no FX pair for a sub-unit, so these
+# map to the major currency; app.js applies the /100 on its side.
+# Deliberately NOT the same values as app.js's SUFFIX_CURRENCY: asking Yahoo for
+# "GBpUSD=X" or "ILAUSD=X" returns nothing at all.
+SUBUNIT_MAJOR = {"GBp": "GBP", "ILA": "ILS", "ZAc": "ZAR"}
+
+
+def fx_currency_for(pos, recorded=None):
+    """The currency whose USD pair this position needs."""
+    ticker = pos.get("ticker") or ""
+    ccy = (recorded or {}).get(ticker)
+    if not ccy:
+        for suffix, suffix_ccy in SUFFIX_CURRENCY.items():
+            if ticker.endswith(suffix):
+                ccy = suffix_ccy
+                break
+    if not ccy:
+        ccy = pos.get("currency") or BASE_CURRENCY
+    return SUBUNIT_MAJOR.get(ccy, ccy)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -58,7 +100,60 @@ def supabase_get_all(path):
 def load_allocations():
     return supabase_get_all("allocations?select=positions")
 
-def collect_tickers(allocations):
+def load_start_date():
+    """Earliest tournament start — the fetch window has to reach back far
+    enough to cover every round still rendered by the site."""
+    rows = supabase_get_all("tournaments?select=start_date")
+    dates = sorted(r["start_date"] for r in rows if r.get("start_date"))
+    return dates[0] if dates else DEFAULT_START
+
+def load_ticker_currencies():
+    """Recorded ticker -> currency, empty if the ticker_meta migration hasn't run."""
+    try:
+        rows = supabase_get_all("ticker_meta?select=ticker,currency")
+    except Exception as e:
+        print(f"  note: ticker_meta unavailable ({e}) — falling back to suffix guesses")
+        return {}
+    return {r["ticker"]: r["currency"] for r in rows if r.get("currency")}
+
+
+def record_ticker_currencies(yf_tickers, known):
+    """Ask Yahoo for the real currency of any ticker we haven't recorded yet.
+
+    Yahoo's `currency` field is the only reliable source — a venue is not one
+    currency, and the suffix guess is wrong for London (mixed GBp/GBP/USD) and
+    for Tel Aviv (agorot, not shekels). One call per *new* ticker only, so the
+    hourly job costs nothing once the table is warm.
+    """
+    missing = [t for t in yf_tickers if t not in known]
+    if not missing:
+        return known
+    print(f"Resolving currency for {len(missing)} new ticker(s)...")
+    resolved = {}
+    for ticker in missing:
+        try:
+            info = yf.Ticker(ticker).fast_info
+            ccy = getattr(info, "currency", None) or (info.get("currency") if hasattr(info, "get") else None)
+            if ccy:
+                resolved[ticker] = ccy
+                print(f"  {ticker}: {ccy}")
+            else:
+                print(f"  WARNING: no currency reported for {ticker}")
+        except Exception as e:
+            print(f"  WARNING: currency lookup failed for {ticker}: {e}")
+    if resolved:
+        try:
+            supabase_request(
+                "ticker_meta", method="POST",
+                body=[{"ticker": t, "currency": c} for t, c in resolved.items()],
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+        except Exception as e:
+            print(f"  WARNING: could not persist ticker_meta ({e})")
+    return {**known, **resolved}
+
+
+def collect_tickers(allocations, recorded=None):
     yf_tickers = set()
     poly_tickers = set()
     coingecko_tickers = {}  # ticker -> coingecko_id
@@ -74,8 +169,9 @@ def collect_tickers(allocations):
                 coingecko_tickers[t] = pos["coingecko_id"]
             else:
                 yf_tickers.add(t)
-            if pos.get("currency") and pos["currency"] != BASE_CURRENCY:
-                fx_pairs.add(f"{pos['currency']}USD=X")
+            ccy = fx_currency_for(pos, recorded)
+            if ccy and ccy != BASE_CURRENCY:
+                fx_pairs.add(f"{ccy}USD=X")
     return sorted(yf_tickers), sorted(poly_tickers), coingecko_tickers, sorted(fx_pairs)
 
 def fetch_yfinance(tickers, start):
@@ -220,7 +316,7 @@ def fetch_coingecko(coingecko_tickers, start, existing_prices):
                 result[ticker] = existing_prices[ticker]
     return result
 
-def fetch_polymarket(poly_tickers, existing_prices):
+def fetch_polymarket(poly_tickers, existing_prices, start):
     if not poly_tickers:
         return {}
     print(f"Fetching {len(poly_tickers)} Polymarket positions...")
@@ -270,7 +366,7 @@ def fetch_polymarket(poly_tickers, existing_prices):
                     hist = json.loads(resp.read())
                 for entry in hist.get("history", []):
                     d = str(datetime.utcfromtimestamp(entry["t"]).date())
-                    if d >= START:
+                    if d >= start:
                         series[d] = round(float(entry["p"]), 6)
                 print(f"  {ticker}: {current_price:.4f} ({len(series)} historical days)")
             else:
@@ -317,15 +413,35 @@ def upsert_meta(fetched_at, base_currency):
     )
 
 def main():
+    start = load_start_date()
+    print(f"Fetch window starts {start}")
     allocations = load_allocations()
-    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations)
+    recorded = load_ticker_currencies()
+    yf_only, _, _, _ = collect_tickers(allocations, recorded)
+    recorded = record_ticker_currencies(yf_only, recorded)
+    # Re-derive with the freshly resolved currencies so a brand-new foreign
+    # holding gets its FX pair on the same run it's first seen.
+    yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations, recorded)
+    print(f"FX pairs needed: {', '.join(fx_pairs) or 'none'}")
     existing = load_existing_prices()
 
     prices = {}
-    prices.update(fetch_yfinance(yf_tickers + fx_pairs, START))
-    fix_recent_splits(prices, yf_tickers, START)
-    prices.update(fetch_coingecko(coingecko_tickers, START, existing))
-    prices.update(fetch_polymarket(poly_tickers, existing))
+    prices.update(fetch_yfinance(yf_tickers + fx_pairs, start))
+    fix_recent_splits(prices, yf_tickers, start)
+    prices.update(fetch_coingecko(coingecko_tickers, start, existing))
+    prices.update(fetch_polymarket(poly_tickers, existing, start))
+
+    # A ticker with no series is scored as a total loss by the site, so an
+    # empty fetch is a loud problem, not a footnote.
+    # FX pairs are included deliberately: a failed FX download used to print one
+    # inner warning and nothing else, which is the exact silence this block
+    # exists to end.
+    empty = sorted(t for t in yf_tickers + fx_pairs + sorted(coingecko_tickers) + poly_tickers
+                   if not prices.get(t) and not existing.get(t))
+    if empty:
+        print(f"\n!! {len(empty)} ticker(s) have NO price data anywhere — these score -100%:")
+        for t in empty:
+            print(f"     {t}")
 
     n_rows = upsert_prices(prices)
     upsert_meta(str(date.today()), BASE_CURRENCY)

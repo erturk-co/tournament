@@ -1,9 +1,4 @@
 /* ─── config ─────────────────────────────────────────────────────────── */
-// Lower bound for chart date axes — the earliest date across every
-// tournament (active + history), so return/price charts still cover old
-// tournaments correctly. Set from real data in loadData(); this literal is
-// just a fallback before that first load.
-let START_DATE = "2026-06-02";
 const BASE_CURRENCY = "USD";
 const COLORS = ["#4a6880","#9e6b72","#7a8f6e","#a07a3a","#6b7a8f","#8f7a6b","#b5564a","#5a7a5e"];
 const LW = window.LightweightCharts;
@@ -105,21 +100,51 @@ let historyTournaments = []; // [{ ...tournament, portfolios }], newest first
 let priceData = {};
 let lwCharts = [];
 
+/* ─── tournament windows ─────────────────────────────────────────────────
+   Every price lookup is scoped to the window of the tournament being
+   displayed. Previously a single module-level START_DATE held the earliest
+   start across *all* tournaments, so the Sep 2026 round still rendered
+   charts from 2026-06-02 (the previous round's start) and a completed
+   round's "final" standings kept accruing forever. A window is
+   { start, end }; `end` is inclusive, and null means "still running". ── */
+function windowFor(tournament) {
+  return { start: tournament.start_date, end: tournament.end_date ?? null };
+}
+
+function withinWindow(date, win) {
+  return date >= win.start && (!win.end || date <= win.end);
+}
+
+// The last date a window can be scored at — a completed tournament is frozen
+// at its end_date no matter how much later it's viewed.
+function windowAsOf(win, asOfDate = getToday()) {
+  return win.end && win.end < asOfDate ? win.end : asOfDate;
+}
+
+let activeWindow = null;
+
 /* ─── init ───────────────────────────────────────────────────────────── */
 async function loadData() {
-  const [tournamentRows, participantRows, allocRows, metaRows, priceRows] = await Promise.all([
-    supabaseRequest("tournaments?select=id,name,start_date,status"),
+  const [tournamentRows, participantRows, allocRows, metaRows, priceRows, tickerMetaRows] = await Promise.all([
+    // `select=*` rather than naming columns: `end_date` is added by a manual
+    // migration (see supabase/schema.sql), and PostgREST 400s on a named
+    // column that doesn't exist yet — which would take the whole site down
+    // between deploying this and running the SQL. With `*`, a pre-migration
+    // database simply yields no end_date, every tournament reads as ongoing,
+    // and the site keeps working until the migration lands. Two rows, so the
+    // wildcard costs nothing.
+    supabaseRequest("tournaments?select=*"),
     supabaseRequest("participants?select=id,name"),
     supabaseRequest("allocations?select=tournament_id,participant_id,effective_date,positions,created_at&order=effective_date.asc"),
     supabaseRequest("meta?select=fetched_at,base_currency"),
     supabaseRequest("prices?select=ticker,date,price"),
+    // Same migration as end_date. Missing table resolves to null rather than
+    // failing the load, so the site works before the SQL is run.
+    supabaseRequest("ticker_meta?select=ticker,currency").catch(() => null),
   ]);
 
   activeTournament = tournamentRows.find(t => t.status === "active") ?? null;
-
-  if (tournamentRows.length) {
-    START_DATE = tournamentRows.map(t => t.start_date).sort()[0];
-  }
+  activeWindow = activeTournament ? windowFor(activeTournament) : null;
 
   const portfoliosFor = (tournamentId) => participantRows.map(p => ({
     ...p,
@@ -141,6 +166,14 @@ async function loadData() {
   priceData = {};
   priceRows.forEach(({ ticker, date, price }) => {
     (priceData[ticker] ??= {})[date] = price;
+  });
+
+  // Populated by fetch_prices.py from Yahoo's own `currency` field. Absent
+  // until the ticker_meta migration runs, in which case currencyFor() falls
+  // back to the suffix guess.
+  tickerCurrency = {};
+  tickerMetaRows?.forEach(({ ticker, currency }) => {
+    if (currency) tickerCurrency[ticker] = currency;
   });
 
   const meta = metaRows[0];
@@ -195,17 +228,42 @@ function effectiveAllocation(participant, asOfDate = getToday()) {
   return { current, pending };
 }
 
-// Returns { price, date } — the date is the actual trading day the price
-// came from (not necessarily periodStart itself, e.g. if periodStart falls
-// on a weekend/holiday), so callers can look up FX at the matching date
+// Returns { price, date } or null. The date is the actual trading day the
+// price came from (not necessarily periodStart itself, e.g. if periodStart
+// falls on a weekend/holiday), so callers can look up FX at the matching date
 // instead of silently pairing a same-currency price with a different day's
 // FX rate.
-function getBaselinePriceForPosition(pos, periodStart) {
-  if (pos.baseline_price != null) return { price: pos.baseline_price, date: periodStart };
+//
+// The live price series always wins over a stored `baseline_price`. That
+// field is a snapshot taken at submission time, so for a position carried
+// into a later tournament it anchors returns to the wrong date entirely — a
+// position submitted at 0.295 and worth 0.285 when the round actually opened
+// was scoring a flat 0.00% instead of its real return. It survives only as a
+// fallback for an instrument whose in-window prints are all non-positive —
+// callers reject a ticker with no series at all before reaching this point,
+// so the fallback cannot rescue one of those.
+//
+// A baseline of 0 is never usable: it means an already-settled prediction
+// market, and dividing by it produced Infinity totals that sorted straight to
+// the top of the leaderboard. Rejecting it makes the caller score the position
+// as a total loss instead.
+//
+// The scan takes the first *positive* print rather than simply the first one.
+// Checking only `dates[0]` meant a single junk row on the window's opening day
+// (0, negative, or null) condemned an otherwise fully-priced instrument to
+// -100%, even when it had good prices every following day. An instrument whose
+// every in-window print is 0 has genuinely settled and still returns null.
+function getBaselinePriceForPosition(pos, periodStart, win) {
   const series = priceData[pos.ticker];
-  if (!series) return null;
-  const dates = Object.keys(series).filter(d => d >= periodStart).sort();
-  return dates.length ? { price: series[dates[0]], date: dates[0] } : null;
+  if (series) {
+    const date = Object.keys(series)
+      .filter(d => d >= periodStart && withinWindow(d, win))
+      .sort()
+      .find(d => series[d] > 0);
+    if (date) return { price: series[date], date };
+  }
+  if (pos.baseline_price > 0) return { price: pos.baseline_price, date: periodStart };
+  return null;
 }
 
 /* ─── nav ────────────────────────────────────────────────────────────── */
@@ -235,18 +293,72 @@ function showPage(name) {
 }
 
 /* ─── price helpers ──────────────────────────────────────────────────── */
-function getDates() {
+function getDates(win) {
   const all = new Set();
   Object.values(priceData).forEach(s => Object.keys(s).forEach(d => all.add(d)));
-  return [...all].filter(d => d >= START_DATE).sort();
+  return [...all].filter(d => withinWindow(d, win)).sort();
 }
 
-function getFXRate(ccy, date) {
+// Some venues quote in a sub-unit of their currency, and there is no FX pair
+// for a sub-unit — London in pence, Tel Aviv in agorot, Johannesburg in cents.
+// Convert to the major unit and scale. This cancels out of a return ratio
+// (both ends get the same divisor) but keeps the model honest, and matters the
+// moment anything displays a converted level.
+const SUBUNIT = { GBp: ["GBP", 100], ILA: ["ILS", 100], ZAc: ["ZAR", 100] };
+
+// Ticker -> the currency Yahoo actually reports, recorded by fetch_prices.py.
+// This is the only reliable source: a venue is not one currency. London alone
+// quotes 3SMO.L in USD, SNV3.L in pence and VUSA.L in pounds, and the stored
+// `currency` on a position says "USD" for all three because the rebalance form
+// defaults it whenever the exchange code isn't recognised.
+let tickerCurrency = {};
+
+// Fallback for tickers the fetcher hasn't recorded yet. A suffix is a decent
+// guess for single-currency venues and a bad one for London, which is why the
+// recorded value wins whenever it exists.
+const SUFFIX_CURRENCY = {
+  ".IS": "TRY", ".SW": "CHF", ".TA": "ILA", ".L": "GBp",
+  ".MI": "EUR", ".DE": "EUR", ".PA": "EUR", ".AS": "EUR", ".BR": "EUR", ".MC": "EUR",
+  ".KS": "KRW", ".KQ": "KRW", ".T": "JPY", ".HK": "HKD",
+  ".ST": "SEK", ".OL": "NOK", ".CO": "DKK",
+  ".TO": "CAD", ".AX": "AUD", ".NS": "INR", ".SA": "BRL",
+};
+
+function currencyFor(pos) {
+  const ticker = pos.ticker || "";
+  if (tickerCurrency[ticker]) return tickerCurrency[ticker];
+  for (const [suffix, ccy] of Object.entries(SUFFIX_CURRENCY)) {
+    if (ticker.endsWith(suffix)) return ccy;
+  }
+  return pos.currency || BASE_CURRENCY;
+}
+
+// Currencies priced at parity because no FX series exists yet. Collected per
+// computation and reported alongside the result, never as a module-level
+// global: a global leaked one participant's missing rates onto everybody
+// else's page and outlived the condition that set it.
+function getFXRate(ccy, date, missing = null) {
   if (!ccy || ccy === BASE_CURRENCY) return 1;
-  const series = priceData[`${ccy}USD=X`];
-  if (!series) return 1;
-  const closest = Object.keys(series).sort().filter(d => d <= date).pop();
-  return closest ? series[closest] : 1;
+  const [code, scale] = SUBUNIT[ccy] ?? [ccy, 1];
+  const series = priceData[`${code}USD=X`];
+  const closest = series && sortedDates(series).filter(d => d <= date).pop();
+  if (!closest) {
+    missing?.add(code);
+    return 1 / scale;   // same units as the normal path, so parity still cancels
+  }
+  return series[closest] / scale;
+}
+
+// Object.keys().sort() on every FX lookup is two sorts per position per date.
+// The series only changes when loadData runs, so cache it there.
+const sortedDateCache = new WeakMap();
+function sortedDates(series) {
+  let dates = sortedDateCache.get(series);
+  if (!dates) {
+    dates = Object.keys(series).sort();
+    sortedDateCache.set(series, dates);
+  }
+  return dates;
 }
 
 function getPositionUrl(pos) {
@@ -266,35 +378,110 @@ function escapeHtml(value) {
   }[c]));
 }
 
-function getPriceSeries(ticker) {
+function getPriceSeries(ticker, win) {
   const series = priceData[ticker];
   if (!series) return null;
-  return Object.keys(series).filter(d => d >= START_DATE).sort()
+  return Object.keys(series).filter(d => withinWindow(d, win)).sort()
     .map(d => ({ time: d, value: series[d] }));
 }
 
-function getReturnSeries(pos, periodStart, periodEnd = null) {
+function getReturnSeries(pos, periodStart, periodEnd, win, missing = null) {
   const series = priceData[pos.ticker];
   if (!series) return null;
-  const baseline = getBaselinePriceForPosition(pos, periodStart);
+  const baseline = getBaselinePriceForPosition(pos, periodStart, win);
   if (baseline == null) return null;
-  const fxBase = getFXRate(pos.currency, baseline.date);
-  let dates = Object.keys(series).filter(d => d >= periodStart).sort();
+
+  const ccy     = currencyFor(pos);
+  const fxBase  = getFXRate(ccy, baseline.date, missing);
+  const divisor = baseline.price * fxBase;
+  if (!(divisor > 0)) return null;   // never divide by zero — see the baseline resolver
+
+  let dates = sortedDates(series).filter(d => d >= periodStart && withinWindow(d, win));
   if (periodEnd) dates = dates.filter(d => d < periodEnd);
-  return dates.map(d => {
-    const fxNow = getFXRate(pos.currency, d);
-    const ret = ((series[d] * fxNow) - (baseline.price * fxBase)) / (baseline.price * fxBase);
-    return { date: d, ret };
-  });
+  if (!dates.length) return null;    // delisted or not yet trading in this window
+
+  return dates.map(d => ({
+    date: d,
+    ret: ((series[d] * getFXRate(ccy, d, missing)) - divisor) / divisor,
+  }));
+}
+
+// Prices refresh hourly, so a freshly submitted ticker legitimately has no
+// rows yet. Scoring that as a total loss would drop someone who entered
+// correctly to -100% — retroactively across the whole window — until the next
+// run of the fetcher. Inside this grace period an unknown ticker is treated as
+// uninvested instead, and flagged in the UI. Beyond it the ticker is presumed
+// wrong and the tournament's total-loss rule applies.
+const PRICE_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function awaitingFirstPrices(period) {
+  if (!period?.created_at) return false;
+  const age = Date.now() - new Date(period.created_at).getTime();
+  return age >= 0 && age < PRICE_GRACE_MS;
+}
+
+// A position is exactly one of:
+//   cash     — deliberately no ticker; earns 0% but still occupies its weight
+//   scored   — real price data in this window
+//   awaiting — submitted within the grace period, prices not fetched yet;
+//              scored 0% like cash until the grace period expires
+//   dead     — unscoreable, and by tournament rule scored as a total loss
+//              (unknown ticker, no prices in the window, or a settled market
+//              whose baseline is 0). Previously these silently contributed 0%,
+//              so a delisted holding looked like a harmless cash sleeve.
+function classifyPosition(pos, periodStart, periodEnd, win, period = null, missing = null) {
+  if (!pos.ticker) return { kind: "cash" };
+  if (!priceData[pos.ticker]) {
+    return awaitingFirstPrices(period)
+      ? { kind: "awaiting", reason: "waiting for the next hourly price refresh" }
+      : { kind: "dead", reason: "no price data for this ticker" };
+  }
+  const ret = getReturnSeries(pos, periodStart, periodEnd, win, missing);
+  if (!ret) return { kind: "dead", reason: deadReason(pos, periodStart, periodEnd, win) };
+  return { kind: "scored", ret };
+}
+
+// Why a position with a price series still can't be scored. Worth spelling out:
+// Yahoo keeps displaying a delisted instrument's final trade as though it were
+// live, so a bare "no usable price" invites the fair objection that the price
+// is right there on the quote page.
+function deadReason(pos, periodStart, periodEnd, win) {
+  const series = priceData[pos.ticker];
+  const inWindow = sortedDates(series)
+    .filter(d => d >= periodStart && withinWindow(d, win) && (!periodEnd || d < periodEnd));
+
+  if (!inWindow.length) {
+    const last = sortedDates(series).at(-1);
+    return last ? `stopped trading ${last}, before this round opened`
+                : "no usable price in this tournament's window";
+  }
+  // Priced, but at zero for the whole window: an already-settled market.
+  return `settled at $0 on ${inWindow[0]}, before this round opened`;
+}
+
+// Most recent point at or before `date`. Scanning forward and stopping matters:
+// indexing the last element as a fallback let a position whose data starts late
+// borrow a *future* return for earlier dates, quietly introducing lookahead.
+function returnAsOf(ret, date) {
+  let out = null;
+  for (const r of ret) {
+    if (r.date > date) break;
+    out = r;
+  }
+  return out;
 }
 
 // Compounds returns across allocation periods: each period's weighted return
 // is computed against its own start price, then chained onto the running
 // value carried over from prior periods (equivalent to selling the old
 // positions and buying the new ones at the switch-over date).
-function computePortfolioReturn(participant, asOfDate = getToday()) {
-  const dates = getDates();
-  if (!dates.length) return { totalReturn: 0, series: [], unresolved: [] };
+function computePortfolioReturn(participant, win, asOfDate = getToday()) {
+  const dates = getDates(win);
+  if (!dates.length) return { totalReturn: 0, series: [], dead: [] };
+
+  // A completed tournament is scored as of its end_date, so its final
+  // standings stop moving instead of drifting with every later price refresh.
+  asOfDate = windowAsOf(win, asOfDate);
 
   const { current } = effectiveAllocation(participant, asOfDate);
   // Sorted ascending, tie-broken by created_at: if a participant resubmits
@@ -308,35 +495,62 @@ function computePortfolioReturn(participant, asOfDate = getToday()) {
     .filter(a => a.effective_date <= asOfDate)
     .sort((a, b) => a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
 
-  let unresolved = [];
+  const dead = [];
+  const awaiting = [];
+  const missingFX = new Set();
   let carryValue = 1;
   const series = [];
 
   periods.forEach((period, i) => {
-    const periodStart = period.effective_date;
+    // An allocation carried over from before the window opens is still scored
+    // from the window's own start, never from its original effective date.
+    const periodStart = period.effective_date < win.start ? win.start : period.effective_date;
     const periodEnd   = periods[i + 1] ? periods[i + 1].effective_date : null;
-    const totalWeight = period.positions.reduce((s, p) => s + (p.weight || 0), 0);
-    const resolved    = period.positions.filter(p => p.ticker && priceData[p.ticker]);
-    if (period === current) {
-      // a blank ticker is a deliberate cash/0%-return position (already
-      // handled correctly in the return math below via totalWeight) — only
-      // flag positions that HAVE a ticker but no matching price data, since
-      // that's an actual data problem worth warning about
-      unresolved = period.positions.filter(p => p.ticker && !priceData[p.ticker]);
-    }
-
-    const posSeries = resolved.map(pos => ({
-      weight: (pos.weight || 0) / (totalWeight || 100),
-      ret: getReturnSeries(pos, periodStart, periodEnd) ?? [],
-    }));
+    // Number(), not `|| 0`: a weight stored as the string "50" made `+` do
+    // string concatenation, inflating totalWeight to 5050 and quietly
+    // shrinking every penalty to a rounding error.
+    const weightOf    = p => Number(p.weight) || 0;
+    const totalWeight = period.positions.reduce((s, p) => s + weightOf(p), 0) || 100;
 
     const periodDates = dates.filter(d => d >= periodStart && (!periodEnd || d < periodEnd));
+    // A resubmission on the same effective_date collapses the superseded row's
+    // range to nothing. Such a row contributes no dates and so no return — and
+    // it must contribute no *reporting* either. Classifying it would mark every
+    // one of its positions dead (there are no prices inside an empty range) and
+    // attribute another participant's discarded tickers to this one.
+    if (!periodDates.length) return;
+
+    const entries = period.positions.map(pos => ({
+      pos,
+      weight: weightOf(pos) / totalWeight,
+      ...classifyPosition(pos, periodStart, periodEnd, win, period, missingFX),
+    }));
+
+    // Collected across every period that actually scored, not just the current
+    // one. A dead position in an earlier period is baked permanently into
+    // carryValue, so leaving it out meant a portfolio could carry a large
+    // unexplained loss with an empty warning banner and all-green cards.
+    // Deduped by ticker, tagged with the earliest period it hurt.
+    const tag = period === current ? null : periodStart;
+    entries.forEach(e => {
+      const key = e.pos.ticker || e.pos.raw_name;
+      if (e.kind === "dead" && !dead.some(d => (d.pos.ticker || d.pos.raw_name) === key)) {
+        dead.push({ pos: e.pos, reason: e.reason, since: tag });
+      }
+      if (e.kind === "awaiting" && !awaiting.some(a => (a.pos.ticker || a.pos.raw_name) === key)) {
+        awaiting.push({ pos: e.pos, reason: e.reason });
+      }
+    });
+
     let lastMultiplier = 1;
     periodDates.forEach(date => {
       let val = 0;
-      for (const { weight, ret } of posSeries) {
-        const entry = ret.find(r => r.date === date) ?? ret[ret.length - 1];
-        if (entry) val += weight * entry.ret;
+      for (const entry of entries) {
+        if (entry.kind === "cash") continue;            // 0% return, weight still held
+        if (entry.kind === "awaiting") continue;        // uninvested until prices arrive
+        if (entry.kind === "dead") { val -= entry.weight; continue; }  // total loss
+        const point = returnAsOf(entry.ret, date);
+        if (point) val += entry.weight * point.ret;
       }
       lastMultiplier = 1 + val;
       series.push({ date, value: carryValue * lastMultiplier - 1 });
@@ -344,7 +558,7 @@ function computePortfolioReturn(participant, asOfDate = getToday()) {
     carryValue *= lastMultiplier;
   });
 
-  return { totalReturn: series.at(-1)?.value ?? 0, series, unresolved };
+  return { totalReturn: series.at(-1)?.value ?? 0, series, dead, awaiting, missingFX: [...missingFX] };
 }
 
 function formatShortDate(dateStr) {
@@ -359,24 +573,53 @@ function renderLeaderboard() {
     document.getElementById("leaderboard-since").textContent = `Since ${formatShortDate(activeTournament.start_date)}`;
   }
 
-  const results = portfolios
-    .map(p => { const { totalReturn, series } = computePortfolioReturn(p); return { p, totalReturn, series }; })
+  // Only rank people who have actually entered. Everyone else used to appear
+  // as a phantom 0.00% row, which both padded the table and outranked anyone
+  // genuinely down on the round. They stay on the Portfolios page and in the
+  // Rebalance dropdown — removing them there would strand them permanently.
+  const entered    = portfolios.filter(p => effectiveAllocation(p).current);
+  const notEntered = portfolios.filter(p => !effectiveAllocation(p).current);
+
+  const results = entered
+    .map(p => {
+      const { totalReturn, series, dead, awaiting } = computePortfolioReturn(p, activeWindow);
+      return { p, totalReturn, series, dead, awaiting };
+    })
     .sort((a, b) => b.totalReturn - a.totalReturn);
+
+  const noteLines = [];
+  if (notEntered.length) {
+    noteLines.push(`${notEntered.length} of ${portfolios.length} haven't entered yet: ${notEntered.map(p => p.name).join(", ")}`);
+  }
+  if (results.some(r => r.dead.length)) {
+    noteLines.push(`† includes a position scored as a total loss — open the row for detail`);
+  }
+  document.getElementById("leaderboard-note").textContent = noteLines.join(" · ");
 
   const tbody = document.getElementById("leaderboard-body");
   tbody.innerHTML = "";
 
-  results.forEach(({ p, totalReturn, series }, i) => {
+  results.forEach(({ p, totalReturn, series, dead, awaiting }, i) => {
     const tr = document.createElement("tr");
     if (i === 0) tr.classList.add("rank-1");
     const sign     = totalReturn >= 0 ? "+" : "";
     const retClass = totalReturn > 0 ? "return-pos" : totalReturn < 0 ? "return-neg" : "return-zero";
     const sparkId  = `spark-${p.id}`;
 
+    // A loss caused by unscoreable data looks identical to a loss caused by
+    // the market once it reaches the table, so mark it. Without this, a
+    // position that genuinely fell 99.5% ranks *above* one that merely has no
+    // prices, with nothing on the board to tell them apart.
+    const flag = dead.length
+      ? `<span class="return-flag" title="${escapeHtml(dead.map(d => `${d.pos.ticker || d.pos.raw_name}: ${d.reason}`).join("; "))}">†</span>`
+      : awaiting.length
+      ? `<span class="return-flag" title="Awaiting first price refresh">·</span>`
+      : "";
+
     tr.innerHTML = `
       <td><span class="rank-num">${i + 1}</span></td>
       <td><span class="participant-name">${escapeHtml(p.name)}</span></td>
-      <td><span class="return-val ${retClass}">${sign}${(totalReturn * 100).toFixed(2)}%</span></td>
+      <td><span class="return-val ${retClass}">${sign}${(totalReturn * 100).toFixed(2)}%</span>${flag}</td>
       <td class="sparkline-cell" id="${sparkId}"></td>
     `;
     tr.addEventListener("click", () => showDetail(p));
@@ -413,26 +656,37 @@ function renderSparklineSVG(cell, series, totalReturn) {
 }
 
 /* ─── detail page ────────────────────────────────────────────────────── */
-function showDetail(participant) {
+function showDetail(participant, win = activeWindow) {
   destroyCharts();
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById("page-detail").classList.add("active");
   document.getElementById("detail-name").textContent = participant.name;
 
-  const { series, unresolved } = computePortfolioReturn(participant);
+  const { series, dead, awaiting, missingFX } = computePortfolioReturn(participant, win);
 
-  const warn = document.getElementById("detail-warning");
-  if (unresolved.length) {
-    warn.style.display = "block";
-    warn.textContent = `${unresolved.length} position(s) excluded from returns: ${unresolved.map(p => p.raw_name || p.ticker || "unknown").join(", ")}`;
-  } else {
-    warn.style.display = "none";
+  const warn  = document.getElementById("detail-warning");
+  const notes = [];
+  if (dead.length) {
+    const named = dead.map(d => {
+      const when = d.since ? `, held from ${d.since}` : "";
+      return `${d.pos.raw_name || d.pos.ticker || "unknown"} (${d.reason}${when})`;
+    });
+    notes.push(`${dead.length} position(s) scored as a total loss — ${named.join("; ")}`);
   }
+  if (awaiting.length) {
+    const named = awaiting.map(a => a.pos.ticker || a.pos.raw_name || "unknown");
+    notes.push(`${awaiting.length} newly added position(s) not scored yet, awaiting the next hourly price refresh: ${named.join(", ")}`);
+  }
+  if (missingFX.length) {
+    notes.push(`No FX rate yet for ${missingFX.join(", ")} — those holdings are shown at local-currency return until the next price refresh.`);
+  }
+  warn.style.display = notes.length ? "block" : "none";
+  warn.textContent   = notes.join(" · ");
 
   requestAnimationFrame(() => {
     renderPortfolioChart(series);
-    renderAllocationHistoryChart(participant);
-    renderPositionCards(participant);
+    renderAllocationHistoryChart(participant, win);
+    renderPositionCards(participant, win);
   });
 }
 
@@ -440,9 +694,11 @@ function daysBetween(a, b) {
   return (new Date(`${b}T00:00:00Z`) - new Date(`${a}T00:00:00Z`)) / 86400000;
 }
 
-function renderAllocationHistoryChart(participant) {
+function renderAllocationHistoryChart(participant, win = activeWindow) {
   const container = document.getElementById("chart-allocation-history");
-  const today = getToday();
+  // Right edge of the timeline: today for a live round, the freeze date for a
+  // completed one.
+  const today = windowAsOf(win);
   const periods = [...participant.allocations]
     .filter(a => a.effective_date <= today)
     .sort((a, b) => a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
@@ -453,7 +709,7 @@ function renderAllocationHistoryChart(participant) {
   }
 
   const spans = periods.map((p, i) => ({
-    start: p.effective_date,
+    start: p.effective_date < win.start ? win.start : p.effective_date,
     end: periods[i + 1] ? periods[i + 1].effective_date : today,
     positions: p.positions,
   }));
@@ -538,9 +794,9 @@ function renderPortfolioChart(series) {
   chart.timeScale().fitContent();
 }
 
-function renderPositionCards(participant) {
+function renderPositionCards(participant, win = activeWindow) {
   const section = document.getElementById("positions-section");
-  const { current, pending } = effectiveAllocation(participant);
+  const { current, pending } = effectiveAllocation(participant, windowAsOf(win));
 
   if (!current) {
     section.innerHTML = `<p class="empty-state">No allocation submitted yet.</p>`;
@@ -558,23 +814,34 @@ function renderPositionCards(participant) {
       <div class="positions-grid" id="positions-grid-pending"></div>
     </div>` : ""}
   `;
-  renderPositionCardGrid("positions-grid", current.positions, current.effective_date);
-  if (pending) renderPositionCardGrid("positions-grid-pending", pending.positions, pending.effective_date);
+  renderPositionCardGrid("positions-grid", current, win);
+  // `scored: false` — a pending allocation hasn't started yet, so there is no
+  // return to show. Scoring it would mark every position a total loss, since
+  // by definition no prices exist on or after its future effective date.
+  if (pending) renderPositionCardGrid("positions-grid-pending", pending, win, false);
 }
 
-function renderPositionCardGrid(gridId, positions, periodStart) {
-  const grid = document.getElementById(gridId);
+const NO_RETURN_LABEL = { pending: "not started", awaiting: "awaiting prices", cash: "cash" };
 
-  positions.forEach((pos, i) => {
-    const retSeries = pos.ticker ? getReturnSeries(pos, periodStart) : null;
-    const totalRet  = retSeries?.at(-1)?.ret ?? null;
+function renderPositionCardGrid(gridId, allocation, win = activeWindow, scored = true) {
+  const grid = document.getElementById(gridId);
+  const periodStart = allocation.effective_date;
+  const start = periodStart < win.start ? win.start : periodStart;
+
+  allocation.positions.forEach((pos, i) => {
+    const state     = scored ? classifyPosition(pos, start, null, win, allocation) : { kind: "pending" };
+    const totalRet  = state.kind === "scored" ? state.ret.at(-1).ret
+                    : state.kind === "dead"   ? -1
+                    : null;
     const color     = COLORS[i % COLORS.length];
     const chartId   = `${gridId}-chart-${i}`;
     const url       = getPositionUrl(pos);
 
+    // A dead position reads -100%, matching how it's scored on the leaderboard,
+    // rather than the old "no data" label that hid the cost entirely.
     const retLabel = totalRet === null
-      ? `<span class="position-return" style="color:#9a9186">no data</span>`
-      : `<span class="position-return ${totalRet >= 0 ? "return-pos" : "return-neg"}">${totalRet >= 0 ? "+" : ""}${(totalRet * 100).toFixed(2)}%</span>`;
+      ? `<span class="position-return" style="color:#9a9186" ${state.reason ? `title="${escapeHtml(state.reason)}"` : ""}>${NO_RETURN_LABEL[state.kind] ?? "cash"}</span>`
+      : `<span class="position-return ${totalRet >= 0 ? "return-pos" : "return-neg"}" ${state.kind === "dead" ? `title="${escapeHtml(state.reason)}"` : ""}>${totalRet >= 0 ? "+" : ""}${(totalRet * 100).toFixed(2)}%</span>`;
 
     const card = document.createElement("div");
     card.className = "position-card";
@@ -595,7 +862,7 @@ function renderPositionCardGrid(gridId, positions, periodStart) {
     `;
     grid.appendChild(card);
 
-    const rawPrices = pos.ticker ? getPriceSeries(pos.ticker) : null;
+    const rawPrices = pos.ticker ? getPriceSeries(pos.ticker, win) : null;
     if (rawPrices?.length) {
       requestAnimationFrame(() => {
         const el = document.getElementById(chartId);
@@ -669,7 +936,7 @@ function renderAllocationTable(positions) {
               ? `<a href="${escapeHtml(getPositionUrl(pos))}" target="_blank" rel="noopener noreferrer" class="ticker-link">${escapeHtml(pos.ticker)}</a>`
               : "—"}</td>
             <td>${escapeHtml(pos.type)}</td>
-            <td class="td-ticker">${escapeHtml(pos.currency)}</td>
+            <td class="td-ticker">${escapeHtml(currencyFor(pos))}</td>
             <td class="td-weight">${escapeHtml(pos.weight)}%</td>
             <td class="weight-bar-cell">
               <div class="weight-bar-wrap">
@@ -694,15 +961,20 @@ function renderHistory() {
   }
 
   list.innerHTML = historyTournaments.map(t => {
+    const win = windowFor(t);
     const results = t.portfolios
-      .map(p => ({ p, ...computePortfolioReturn(p) }))
+      .map(p => ({ p, ...computePortfolioReturn(p, win) }))
       .sort((a, b) => b.totalReturn - a.totalReturn);
+
+    const span = win.end
+      ? `${escapeHtml(t.start_date)} → ${escapeHtml(win.end)} · final`
+      : `started ${escapeHtml(t.start_date)}`;
 
     return `
       <div class="history-tournament">
         <div class="history-tournament-header">
           <h2>${escapeHtml(t.name)}</h2>
-          <span class="subtitle">started ${escapeHtml(t.start_date)}</span>
+          <span class="subtitle">${span}</span>
         </div>
         <table class="leaderboard-table">
           <thead><tr>
@@ -723,7 +995,7 @@ function renderHistory() {
         </table>
         <div class="history-portfolios">
           ${results.map(({ p }) => {
-            const { current } = effectiveAllocation(p);
+            const { current } = effectiveAllocation(p, windowAsOf(win));
             return `
               <div class="portfolio-card">
                 <div class="portfolio-card-header"><h2>${escapeHtml(p.name)}</h2></div>
@@ -776,10 +1048,22 @@ function setupRebalancePage() {
 /* ─── ticker search (Supabase Edge Function proxy) ───────────────────── */
 let tickerSearchTimer = null;
 
+// Yahoo exchange code -> trading currency, for picks made through the search
+// box. Anything not listed here used to fall through to USD, which is how a
+// basket of Swiss, Israeli and London holdings ended up priced as dollars.
+// currencyFor() also infers from the ticker suffix, so this is belt-and-braces
+// for instruments whose suffix we don't recognise.
 const EXCHANGE_CURRENCY = {
-  IST: "TRY",          // Istanbul / BIST
+  IST: "TRY",             // Istanbul / BIST
   KSC: "KRW", KOE: "KRW", // Korea Exchange
-  MIL: "EUR",           // Borsa Italiana / Milan
+  MIL: "EUR",             // Borsa Italiana / Milan
+  EBS: "CHF", VTX: "CHF", // SIX Swiss / Virt-X
+  TLV: "ILA",             // Tel Aviv (quotes in agorot, 1/100 shekel)
+  LSE: "GBp",             // London (usually pence — but see tickerCurrency)
+  AMS: "EUR", PAR: "EUR", GER: "EUR", FRA: "EUR", MCE: "EUR", BRU: "EUR",
+  STO: "SEK", OSL: "NOK", CPH: "DKK",
+  TOR: "CAD", ASX: "AUD", NSI: "INR", SAO: "BRL",
+  HKG: "HKD", JPX: "JPY",
 };
 
 const SEARCHABLE_FIELDS = 'input[data-field="ticker"], input[data-field="raw_name"]';
@@ -876,10 +1160,17 @@ function showTickerSuggestions(rowIndex, inputEl, data) {
 
 function showPolymarketSuggestions(rowIndex, inputEl, data) {
   const box = getSuggestionsBox();
+  // A settled market prices its outcomes at exactly 0 or 1. Offering those was
+  // the root of the worst scoring bug in the app: picking one stored
+  // `baseline_price: 0`, which the return math then divided by.
+  const live = (data.outcomes ?? []).filter(o => Number(o.price) > 0 && Number(o.price) < 1);
+
   if (!data.outcomes?.length) {
     box.innerHTML = `<div class="ticker-suggestion-empty">No outcomes found for this market</div>`;
+  } else if (!live.length) {
+    box.innerHTML = `<div class="ticker-suggestion-empty">This market has already settled — pick one that's still trading</div>`;
   } else {
-    box.innerHTML = data.outcomes.map((o, i) => `
+    box.innerHTML = live.map((o, i) => `
       <div class="ticker-suggestion" data-i="${i}">
         <strong>${escapeHtml(o.label)}</strong>
         <span class="ticker-suggestion-meta">$${Number(o.price).toFixed(3)}</span>
@@ -887,7 +1178,7 @@ function showPolymarketSuggestions(rowIndex, inputEl, data) {
     `).join("");
     box.querySelectorAll(".ticker-suggestion").forEach(el => {
       el.addEventListener("click", () => {
-        const o = data.outcomes[+el.dataset.i];
+        const o = live[+el.dataset.i];
         applyTickerSelection(rowIndex, {
           ticker: `POLY:${data.slug}:${o.label.toUpperCase()}`,
           raw_name: data.question || data.slug,
@@ -935,7 +1226,7 @@ function renderRebalanceTable() {
       <td><input data-index="${i}" data-field="type" value="${escapeHtml(pos.type ?? "")}"></td>
       <td><input data-index="${i}" data-field="exchange" value="${escapeHtml(pos.exchange ?? "")}"></td>
       <td><input data-index="${i}" data-field="currency" value="${escapeHtml(pos.currency ?? "")}"></td>
-      <td><input data-index="${i}" data-field="weight" type="number" step="0.01" value="${escapeHtml(pos.weight ?? 0)}"></td>
+      <td><input data-index="${i}" data-field="weight" type="number" step="0.01" min="0" value="${escapeHtml(pos.weight ?? 0)}"></td>
       <td><input data-index="${i}" data-field="notes" value="${escapeHtml(pos.notes ?? "")}"></td>
       <td><button class="rebalance-row-remove" data-index="${i}" type="button" title="Remove">✕</button></td>
     </tr>
@@ -952,11 +1243,45 @@ function updateWeightSum() {
   return ok;
 }
 
+// Prediction-market tickers must be the exact POLY:<slug>:<OUTCOME> shape the
+// price fetcher understands. A hand-typed label like "Poly Ben Shelton:Yes"
+// looks plausible in the form but is fetched as if it were a stock symbol,
+// finds nothing, and now costs its full weight as a total loss.
+const POLY_TICKER_RE = /^POLY:[^:]+:[^:]+$/;
+
 async function submitRebalance() {
   const ok = updateWeightSum();
   if (!rebalanceDraft.length) { alert("Add at least one position."); return; }
   if (rebalanceDraft.some(p => !p.raw_name?.trim())) { alert("Every position needs a name."); return; }
   if (!ok) { alert("Weights must sum to 100% (± 0.5) before submitting."); return; }
+
+  // A negative weight is a short, which this tournament doesn't model — and it
+  // breaks the -100% floor outright: -50/+150 against an unscoreable position
+  // scores -160%, and a negative-weight dead position *profits* from being
+  // unscoreable. The sum check alone can't catch it, since -50 and +150 sum
+  // to 100 perfectly well.
+  if (rebalanceDraft.some(p => (Number(p.weight) || 0) < 0)) {
+    alert("Weights can't be negative — this tournament is long-only.");
+    return;
+  }
+
+  const badPoly = rebalanceDraft.find(p => {
+    const t = (p.ticker || "").trim();
+    return /poly/i.test(t) && !POLY_TICKER_RE.test(t);
+  });
+  if (badPoly) {
+    alert(`"${badPoly.ticker}" isn't a valid Polymarket ticker.\n\nPaste the market's polymarket.com/event/… URL into the ticker box and pick an outcome from the dropdown instead of typing it by hand.`);
+    return;
+  }
+
+  // Unknown tickers are scored as a total loss, so a typo is expensive. A
+  // genuinely new ticker won't have prices until the next hourly refresh,
+  // which is why this confirms rather than blocks.
+  const unknown = rebalanceDraft.filter(p => p.ticker?.trim() && !priceData[p.ticker.trim()]);
+  if (unknown.length) {
+    const list = unknown.map(p => p.ticker.trim()).join(", ");
+    if (!confirm(`No price history found for: ${list}\n\nIf these are new they'll fill in at the next hourly refresh. If a ticker is wrong it will be scored as a total loss (-100%) for its full weight.\n\nSubmit anyway?`)) return;
+  }
 
   const participantForSubmit = portfolios.find(p => p.id === rebalanceParticipantId);
   const { current } = effectiveAllocation(participantForSubmit);

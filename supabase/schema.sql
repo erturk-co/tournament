@@ -12,6 +12,11 @@ create table tournaments (
   id text primary key,
   name text not null,
   start_date date not null,
+  -- Inclusive last scoring day. Null means the round is still running.
+  -- Without this a completed tournament's "final" standings kept drifting:
+  -- computePortfolioReturn had no upper bound, so every hourly price refresh
+  -- silently rewrote the result of a round that had already finished.
+  end_date date,
   status text not null default 'active' check (status in ('active','completed'))
 );
 
@@ -88,3 +93,40 @@ create policy "meta: public read"         on meta         for select using (true
 -- happen only via the service_role key (used server-side in
 -- .github/workflows/refresh.yml → scripts/fetch_prices.py), which bypasses
 -- RLS entirely.
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Migration 2026-09-16: tournament end dates
+--
+-- Run this block in the Supabase SQL Editor against the existing project.
+-- (The table definition above already includes end_date for a fresh replay;
+-- this is the incremental version for the live database.)
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table tournaments add column if not exists end_date date;
+
+-- The Jun–Sep 2026 round is over and its standings are final as of Sep 2.
+update tournaments set end_date = '2026-09-02' where id = 't-2026-06';
+
+-- t-2026-09 deliberately keeps end_date null — it's still running.
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Migration 2026-09-16b: authoritative per-ticker currency
+--
+-- A venue is not one currency. London quotes 3SMO.L in USD, SNV3.L in pence
+-- and VUSA.L in pounds, and Tel Aviv quotes in agorot rather than shekels, so
+-- guessing from the ticker suffix mis-prices real holdings by 100x. Yahoo
+-- reports the true currency per instrument; fetch_prices.py records it here
+-- once per ticker and app.js prefers it over the suffix guess.
+-- ─────────────────────────────────────────────────────────────────────────
+
+create table if not exists ticker_meta (
+  ticker text primary key,
+  currency text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table ticker_meta enable row level security;
+create policy "ticker_meta: public read" on ticker_meta for select using (true);
+-- Writes only via the service_role key in fetch_prices.py, which bypasses RLS.
