@@ -437,8 +437,26 @@ function classifyPosition(pos, periodStart, periodEnd, win, period = null, missi
       : { kind: "dead", reason: "no price data for this ticker" };
   }
   const ret = getReturnSeries(pos, periodStart, periodEnd, win, missing);
-  if (!ret) return { kind: "dead", reason: "no usable price in this tournament's window" };
+  if (!ret) return { kind: "dead", reason: deadReason(pos, periodStart, periodEnd, win) };
   return { kind: "scored", ret };
+}
+
+// Why a position with a price series still can't be scored. Worth spelling out:
+// Yahoo keeps displaying a delisted instrument's final trade as though it were
+// live, so a bare "no usable price" invites the fair objection that the price
+// is right there on the quote page.
+function deadReason(pos, periodStart, periodEnd, win) {
+  const series = priceData[pos.ticker];
+  const inWindow = sortedDates(series)
+    .filter(d => d >= periodStart && withinWindow(d, win) && (!periodEnd || d < periodEnd));
+
+  if (!inWindow.length) {
+    const last = sortedDates(series).at(-1);
+    return last ? `stopped trading ${last}, before this round opened`
+                : "no usable price in this tournament's window";
+  }
+  // Priced, but at zero for the whole window: an already-settled market.
+  return `settled at $0 on ${inWindow[0]}, before this round opened`;
 }
 
 // Most recent point at or before `date`. Scanning forward and stopping matters:
