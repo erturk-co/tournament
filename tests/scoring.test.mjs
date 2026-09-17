@@ -22,6 +22,10 @@ const series = {
   NEGFIRST:  { "2026-09-14": -1,   "2026-09-15": 50,  "2026-09-16": 55  },
   NULLFIRST: { "2026-09-14": null, "2026-09-15": 50,  "2026-09-16": 55  },
   ALLZERO:   { "2026-09-14": 0,    "2026-09-15": 0,   "2026-09-16": 0   },
+  // Stopped trading well before the window opened, at a real price.
+  DELISTED:  { "2026-08-24": 5.1,  "2026-08-25": 5.0 },
+  // Also stopped before the window, but having fallen to nothing.
+  WENTZERO:  { "2026-08-24": 0.4,  "2026-08-25": 0   },
 };
 const prices = [];
 for (const [ticker, s] of Object.entries(series)) {
@@ -54,6 +58,24 @@ near("RECOVER 50 / GOOD 50", run([alloc([P("RECOVER", 50), P("GOOD", 50)])]).tot
 console.log("\n…but an all-zero series is a genuine total loss");
 eq("every print 0 -> dead", kind("ALLZERO"), "dead");
 near("ALLZERO 50 / GOOD 50", run([alloc([P("ALLZERO", 50), P("GOOD", 50)])]).totalReturn * 100, -45);
+
+console.log("\ndelisted is not worthless — a wound-down instrument redeems, it doesn't go to zero");
+eq("stopped trading before the window -> frozen", kind("DELISTED"), "frozen");
+{
+  // Last traded at 5.00 three weeks before the round opened. The holder is
+  // redeemed near that value, so the sleeve returns 0% — not -100%.
+  const f = run([alloc([P("DELISTED", 50), P("GOOD", 50)])]);
+  near("frozen sleeve returns 0, priced half returns 10", f.totalReturn * 100, 5);
+  eq("reported as frozen", f.frozen.length, 1);
+  eq("not reported as dead", f.dead.length, 0);
+  ok("the reason names the last trade", /stopped trading 2026-08-25 at 5/.test(f.frozen[0].reason), f.frozen[0].reason);
+}
+{
+  // Control: something that traded down to 0 before the window really is gone.
+  const z = run([alloc([P("WENTZERO", 50), P("GOOD", 50)])]);
+  eq("traded to zero before the window -> dead", kind("WENTZERO"), "dead");
+  near("…and costs its full weight", z.totalReturn * 100, -45);
+}
 
 console.log("\ngrace period — a just-submitted ticker is not punished for the fetcher lagging");
 eq("unknown ticker, fresh -> awaiting", kind("BRANDNEW", NOW), "awaiting");

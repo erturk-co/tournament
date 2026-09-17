@@ -268,11 +268,24 @@ function effectiveAllocation(participant, asOfDate = getToday()) {
 function getBaselinePriceForPosition(pos, periodStart, win) {
   const series = priceData[pos.ticker];
   if (series) {
-    const date = Object.keys(series)
-      .filter(d => d >= periodStart && withinWindow(d, win))
-      .sort()
-      .find(d => series[d] > 0);
+    const inWindow = sortedDates(series).filter(d => d >= periodStart && withinWindow(d, win));
+    const date = inWindow.find(d => series[d] > 0);
     if (date) return { price: series[date], date };
+
+    // Nothing priced inside the window at all. If the instrument last traded
+    // at a real, non-zero price *before* the window opened, it stopped trading
+    // rather than becoming worthless — a delisted or wound-down instrument
+    // redeems near its final value. Anchor to that last price and let the
+    // caller freeze the position there. Scoring it -100% would confuse "we
+    // can't price this" with "this went to zero", which are different events
+    // with a 100-point gap between them.
+    // The *last* price, not the last positive one: something that traded down
+    // to zero and stopped really is worthless, and anchoring to whatever it was
+    // worth the day before would hand it a free 0% round.
+    if (!inWindow.length) {
+      const last = sortedDates(series).filter(d => d < periodStart).at(-1);
+      if (last && series[last] > 0) return { price: series[last], date: last, frozen: true };
+    }
   }
   if (pos.baseline_price > 0) return { price: pos.baseline_price, date: periodStart };
   return null;
@@ -408,9 +421,14 @@ function getReturnSeries(pos, periodStart, periodEnd, win, missing = null) {
   const divisor = baseline.price * fxBase;
   if (!(divisor > 0)) return null;   // never divide by zero — see the baseline resolver
 
+  // Stopped trading before this window opened: held at its last price for the
+  // whole round. One point at the start is enough — returnAsOf() carries it
+  // forward across every later date.
+  if (baseline.frozen) return [{ date: periodStart, ret: 0 }];
+
   let dates = sortedDates(series).filter(d => d >= periodStart && withinWindow(d, win));
   if (periodEnd) dates = dates.filter(d => d < periodEnd);
-  if (!dates.length) return null;    // delisted or not yet trading in this window
+  if (!dates.length) return null;    // not yet trading in this window
 
   return dates.map(d => ({
     date: d,
@@ -437,10 +455,13 @@ function awaitingFirstPrices(period) {
 //   scored   — real price data in this window
 //   awaiting — submitted within the grace period, prices not fetched yet;
 //              scored 0% like cash until the grace period expires
-//   dead     — unscoreable, and by tournament rule scored as a total loss
-//              (unknown ticker, no prices in the window, or a settled market
-//              whose baseline is 0). Previously these silently contributed 0%,
-//              so a delisted holding looked like a harmless cash sleeve.
+//   frozen   — stopped trading before the window opened at a non-zero price.
+//              Held at that price, so 0% for the round. A delisted instrument
+//              redeems near its final value; it did not go to zero.
+//   dead     — genuinely worth nothing: an unknown ticker, or a market that
+//              settled at 0. Scored as a total loss by tournament rule.
+//              Previously these silently contributed 0%, so a worthless
+//              holding looked like a harmless cash sleeve.
 function classifyPosition(pos, periodStart, periodEnd, win, period = null, missing = null) {
   if (!pos.ticker) return { kind: "cash" };
   if (!priceData[pos.ticker]) {
@@ -450,6 +471,14 @@ function classifyPosition(pos, periodStart, periodEnd, win, period = null, missi
   }
   const ret = getReturnSeries(pos, periodStart, periodEnd, win, missing);
   if (!ret) return { kind: "dead", reason: deadReason(pos, periodStart, periodEnd, win) };
+
+  const baseline = getBaselinePriceForPosition(pos, periodStart, win);
+  if (baseline?.frozen) {
+    return {
+      kind: "frozen", ret,
+      reason: `stopped trading ${baseline.date} at ${baseline.price} — held at that price, so 0% for this round`,
+    };
+  }
   return { kind: "scored", ret };
 }
 
@@ -463,8 +492,11 @@ function deadReason(pos, periodStart, periodEnd, win) {
     .filter(d => d >= periodStart && withinWindow(d, win) && (!periodEnd || d < periodEnd));
 
   if (!inWindow.length) {
+    // Reaching here means there was also no usable price *before* the window
+    // (the resolver would have frozen the position at it otherwise), so the
+    // instrument was already worthless when the round opened.
     const last = sortedDates(series).at(-1);
-    return last ? `stopped trading ${last}, before this round opened`
+    return last ? `last traded ${last} at 0, before this round opened`
                 : "no usable price in this tournament's window";
   }
   // Priced, but at zero for the whole window: an already-settled market.
@@ -509,6 +541,7 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
 
   const dead = [];
   const awaiting = [];
+  const frozen = [];
   const missingFX = new Set();
   let carryValue = 1;
   const series = [];
@@ -552,6 +585,9 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
       if (e.kind === "awaiting" && !awaiting.some(a => (a.pos.ticker || a.pos.raw_name) === key)) {
         awaiting.push({ pos: e.pos, reason: e.reason });
       }
+      if (e.kind === "frozen" && !frozen.some(f => (f.pos.ticker || f.pos.raw_name) === key)) {
+        frozen.push({ pos: e.pos, reason: e.reason });
+      }
     });
 
     let lastMultiplier = 1;
@@ -561,6 +597,9 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
         if (entry.kind === "cash") continue;            // 0% return, weight still held
         if (entry.kind === "awaiting") continue;        // uninvested until prices arrive
         if (entry.kind === "dead") { val -= entry.weight; continue; }  // total loss
+        // "scored" and "frozen" both carry a return series — a frozen one is a
+        // single 0 at the period start, which returnAsOf carries across the
+        // whole round.
         const point = returnAsOf(entry.ret, date);
         if (point) val += entry.weight * point.ret;
       }
@@ -570,7 +609,10 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
     carryValue *= lastMultiplier;
   });
 
-  return { totalReturn: series.at(-1)?.value ?? 0, series, dead, awaiting, missingFX: [...missingFX] };
+  return {
+    totalReturn: series.at(-1)?.value ?? 0,
+    series, dead, awaiting, frozen, missingFX: [...missingFX],
+  };
 }
 
 function formatShortDate(dateStr) {
@@ -674,7 +716,7 @@ function showDetail(participant, win = activeWindow) {
   document.getElementById("page-detail").classList.add("active");
   document.getElementById("detail-name").textContent = participant.name;
 
-  const { series, dead, awaiting, missingFX } = computePortfolioReturn(participant, win);
+  const { series, dead, awaiting, frozen, missingFX } = computePortfolioReturn(participant, win);
 
   const warn  = document.getElementById("detail-warning");
   const notes = [];
@@ -684,6 +726,10 @@ function showDetail(participant, win = activeWindow) {
       return `${d.pos.raw_name || d.pos.ticker || "unknown"} (${d.reason}${when})`;
     });
     notes.push(`${dead.length} position(s) scored as a total loss — ${named.join("; ")}`);
+  }
+  if (frozen.length) {
+    const named = frozen.map(f => `${f.pos.raw_name || f.pos.ticker || "unknown"} (${f.reason})`);
+    notes.push(`${frozen.length} position(s) no longer trading — ${named.join("; ")}`);
   }
   if (awaiting.length) {
     const named = awaiting.map(a => a.pos.ticker || a.pos.raw_name || "unknown");
@@ -853,7 +899,7 @@ function renderPositionCardGrid(gridId, allocation, win = activeWindow, scored =
     // rather than the old "no data" label that hid the cost entirely.
     const retLabel = totalRet === null
       ? `<span class="position-return" style="color:#9a9186" ${state.reason ? `title="${escapeHtml(state.reason)}"` : ""}>${NO_RETURN_LABEL[state.kind] ?? "cash"}</span>`
-      : `<span class="position-return ${totalRet >= 0 ? "return-pos" : "return-neg"}" ${state.kind === "dead" ? `title="${escapeHtml(state.reason)}"` : ""}>${totalRet >= 0 ? "+" : ""}${(totalRet * 100).toFixed(2)}%</span>`;
+      : `<span class="position-return ${totalRet >= 0 ? "return-pos" : "return-neg"}" ${state.reason ? `title="${escapeHtml(state.reason)}"` : ""}>${totalRet >= 0 ? "+" : ""}${(totalRet * 100).toFixed(2)}%${state.kind === "frozen" ? " ‡" : ""}</span>`;
 
     const card = document.createElement("div");
     card.className = "position-card";
