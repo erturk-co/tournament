@@ -185,12 +185,24 @@ async function init() {
   try {
     await loadData();
     setupNav();
-    setupRebalancePage();
+    // Leaderboard first: it's the landing page, and it must not depend on the
+    // rebalance form building successfully. Wiring the form up ahead of it
+    // meant any throw in there left a visitor staring at a blank page instead
+    // of the standings, which are the whole point of the site.
     renderLeaderboard();
   } catch (e) {
     console.error(e);
     document.querySelector("main").innerHTML =
       `<p class="loading">Could not load data. Check the Supabase connection.</p>`;
+    return;
+  }
+
+  try {
+    setupRebalancePage();
+  } catch (e) {
+    console.error(e);
+    document.getElementById("rebalance-hint").textContent =
+      "The rebalance form failed to load — reload the page, or let Emre know.";
   }
 }
 
@@ -1202,6 +1214,14 @@ function applyTickerSelection(rowIndex, fields) {
 function loadRebalanceParticipant(id) {
   rebalanceParticipantId = id;
   const participant = portfolios.find(p => p.id === id);
+  // An id with no matching participant would throw inside effectiveAllocation
+  // and, before init() was split, take the leaderboard down with it.
+  if (!participant) {
+    document.getElementById("rebalance-hint").textContent = "Pick a participant to start.";
+    rebalanceDraft = [];
+    renderRebalanceTable();
+    return;
+  }
   const { current, pending } = effectiveAllocation(participant);
   const source = pending ?? current;
   rebalanceDraft = source ? JSON.parse(JSON.stringify(source.positions)) : [];
