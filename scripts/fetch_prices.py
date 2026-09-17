@@ -14,8 +14,35 @@ except ImportError:
 
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
-START = "2026-06-02"
 BASE_CURRENCY = "USD"
+
+# Fallback only — the real value comes from the earliest tournament start_date
+# in the database (see load_start_date). Hardcoding it meant the fetch window
+# never moved as new rounds were added.
+DEFAULT_START = "2026-06-02"
+
+# Must stay in sync with SUFFIX_CURRENCY in app.js. The stored `currency` field
+# on a position is unreliable (the rebalance form defaults it to USD for any
+# exchange it doesn't recognise), so FX pairs are derived from the ticker
+# suffix as well — otherwise the CHF/ILS/GBP rates those holdings need are
+# never fetched at all and the site silently prices them at parity.
+SUFFIX_CURRENCY = {
+    ".IS": "TRY", ".SW": "CHF", ".TA": "ILS", ".L": "GBP",
+    ".MI": "EUR", ".DE": "EUR", ".PA": "EUR", ".AS": "EUR", ".BR": "EUR", ".MC": "EUR",
+    ".KS": "KRW", ".KQ": "KRW", ".T": "JPY", ".HK": "HKD",
+    ".ST": "SEK", ".OL": "NOK", ".CO": "DKK",
+    ".TO": "CAD", ".AX": "AUD", ".NS": "INR", ".SA": "BRL",
+}
+
+
+def currency_for(pos):
+    ticker = pos.get("ticker") or ""
+    for suffix, ccy in SUFFIX_CURRENCY.items():
+        if ticker.endswith(suffix):
+            return ccy
+    # app.js models London in pence (GBp); the FX pair is still GBPUSD=X.
+    ccy = pos.get("currency") or BASE_CURRENCY
+    return "GBP" if ccy == "GBp" else ccy
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -58,6 +85,13 @@ def supabase_get_all(path):
 def load_allocations():
     return supabase_get_all("allocations?select=positions")
 
+def load_start_date():
+    """Earliest tournament start — the fetch window has to reach back far
+    enough to cover every round still rendered by the site."""
+    rows = supabase_get_all("tournaments?select=start_date")
+    dates = sorted(r["start_date"] for r in rows if r.get("start_date"))
+    return dates[0] if dates else DEFAULT_START
+
 def collect_tickers(allocations):
     yf_tickers = set()
     poly_tickers = set()
@@ -74,8 +108,9 @@ def collect_tickers(allocations):
                 coingecko_tickers[t] = pos["coingecko_id"]
             else:
                 yf_tickers.add(t)
-            if pos.get("currency") and pos["currency"] != BASE_CURRENCY:
-                fx_pairs.add(f"{pos['currency']}USD=X")
+            ccy = currency_for(pos)
+            if ccy and ccy != BASE_CURRENCY:
+                fx_pairs.add(f"{ccy}USD=X")
     return sorted(yf_tickers), sorted(poly_tickers), coingecko_tickers, sorted(fx_pairs)
 
 def fetch_yfinance(tickers, start):
@@ -220,7 +255,7 @@ def fetch_coingecko(coingecko_tickers, start, existing_prices):
                 result[ticker] = existing_prices[ticker]
     return result
 
-def fetch_polymarket(poly_tickers, existing_prices):
+def fetch_polymarket(poly_tickers, existing_prices, start):
     if not poly_tickers:
         return {}
     print(f"Fetching {len(poly_tickers)} Polymarket positions...")
@@ -270,7 +305,7 @@ def fetch_polymarket(poly_tickers, existing_prices):
                     hist = json.loads(resp.read())
                 for entry in hist.get("history", []):
                     d = str(datetime.utcfromtimestamp(entry["t"]).date())
-                    if d >= START:
+                    if d >= start:
                         series[d] = round(float(entry["p"]), 6)
                 print(f"  {ticker}: {current_price:.4f} ({len(series)} historical days)")
             else:
@@ -317,15 +352,27 @@ def upsert_meta(fetched_at, base_currency):
     )
 
 def main():
+    start = load_start_date()
+    print(f"Fetch window starts {start}")
     allocations = load_allocations()
     yf_tickers, poly_tickers, coingecko_tickers, fx_pairs = collect_tickers(allocations)
+    print(f"FX pairs needed: {', '.join(fx_pairs) or 'none'}")
     existing = load_existing_prices()
 
     prices = {}
-    prices.update(fetch_yfinance(yf_tickers + fx_pairs, START))
-    fix_recent_splits(prices, yf_tickers, START)
-    prices.update(fetch_coingecko(coingecko_tickers, START, existing))
-    prices.update(fetch_polymarket(poly_tickers, existing))
+    prices.update(fetch_yfinance(yf_tickers + fx_pairs, start))
+    fix_recent_splits(prices, yf_tickers, start)
+    prices.update(fetch_coingecko(coingecko_tickers, start, existing))
+    prices.update(fetch_polymarket(poly_tickers, existing, start))
+
+    # A ticker with no series is scored as a total loss by the site, so an
+    # empty fetch is a loud problem, not a footnote.
+    empty = sorted(t for t in yf_tickers + sorted(coingecko_tickers) + poly_tickers
+                   if not prices.get(t) and not existing.get(t))
+    if empty:
+        print(f"\n!! {len(empty)} ticker(s) have NO price data anywhere — these score -100%:")
+        for t in empty:
+            print(f"     {t}")
 
     n_rows = upsert_prices(prices)
     upsert_meta(str(date.today()), BASE_CURRENCY)
