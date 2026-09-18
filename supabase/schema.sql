@@ -128,6 +128,9 @@ create table if not exists ticker_meta (
 );
 
 alter table ticker_meta enable row level security;
+-- Dropped first because `create policy` has no IF NOT EXISTS: without this,
+-- re-running the migration errors out halfway instead of being a no-op.
+drop policy if exists "ticker_meta: public read" on ticker_meta;
 create policy "ticker_meta: public read" on ticker_meta for select using (true);
 -- Writes only via the service_role key in fetch_prices.py, which bypasses RLS.
 
