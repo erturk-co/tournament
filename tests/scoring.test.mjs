@@ -183,6 +183,25 @@ for (const t of live.historyTournaments) {
     t.portfolios.every(p => live.computePortfolioReturn(p, win).series.every(s => s.date <= win.end)));
 }
 
+console.log("\nlive data — every submission ever filed is visible and accounted for");
+{
+  const allRows = (await fetchTable("allocations", "id,tournament_id,participant_id,effective_date,positions,created_at"))
+    .filter(r => r.tournament_id === live.activeTournament.id);
+  const shown = live.portfolios.flatMap(p => live.submissionHistory(p));
+  eq("history row count matches the database", shown.length, allRows.length);
+  ok("every database row id appears in some history",
+    allRows.every(r => shown.some(s => s.id === r.id)),
+    allRows.filter(r => !shown.some(s => s.id === r.id)).map(r => r.id).join(", "));
+  ok("exactly one live submission per participant who has entered",
+    live.portfolios.filter(p => live.effectiveAllocation(p).current)
+      .every(p => live.submissionHistory(p).filter(s => s.status === "live").length === 1));
+  ok("a replaced row is one sharing its effective_date with a later filing",
+    shown.filter(s => s.status === "replaced").every(s =>
+      shown.some(o => o.id !== s.id && o.effective_date === s.effective_date && o.created_at > s.created_at)));
+  const replaced = shown.filter(s => s.status === "replaced");
+  console.log(`  note  ${shown.length} submissions on record, ${replaced.length} superseded`);
+}
+
 console.log("\nlive data — the FX warning is scoped to the holder");
 {
   const withMissing = ranked.filter(r => r.missingFX.length);

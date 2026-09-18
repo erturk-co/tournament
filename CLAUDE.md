@@ -27,6 +27,15 @@ reading from Supabase; prices refreshed hourly by a GitHub Action.
 - **Unscoreable positions score −100%**, by tournament rule. A ticker with no
   prices yet gets a 24h grace period first, so a correct new entrant isn't
   wiped out while the fetcher catches up.
+- **The database has no restorable backup except `backups/`.** The Supabase free
+  tier has no point-in-time recovery. `scripts/backup.py` snapshots every table
+  to JSONL daily via `.github/workflows/backup.yml`, and git history is the
+  archive. `scripts/backup.py --verify` checks for drift; `scripts/restore.py`
+  writes a snapshot back (dry run unless `--apply`).
+- **`prices` is mutable** — `fetch_prices.py` upserts in place, so a revised
+  figure overwrites the value a past leaderboard was computed from. The daily
+  snapshot is the only record of what a price *was* on a given day, and so the
+  only way to reproduce an old standing exactly.
 - **Schema changes are manual.** There is no migrations tooling (it needs Docker).
   Add the SQL to `schema.sql` and make the client degrade gracefully when the
   column or table is absent — PostgREST 400s on a named column that doesn't

@@ -84,7 +84,8 @@ export async function bootApp(tables) {
     + `\nglobalThis.__boot = async () => { await loadData();
          return { portfolios, activeTournament, historyTournaments, activeWindow,
                   computePortfolioReturn, effectiveAllocation, classifyPosition,
-                  windowFor, currencyFor, getFXRate, tickerCurrency }; };`;
+                  windowFor, currencyFor, getFXRate, tickerCurrency,
+                  submissionHistory }; };`;
 
   vm.runInContext(src, ctx, { filename: "app.js" });
   return ctx.__boot();

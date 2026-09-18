@@ -130,3 +130,32 @@ create table if not exists ticker_meta (
 alter table ticker_meta enable row level security;
 create policy "ticker_meta: public read" on ticker_meta for select using (true);
 -- Writes only via the service_role key in fetch_prices.py, which bypasses RLS.
+
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Migration 2026-09-18: make the allocation audit trail tamper-proof
+--
+-- `created_at` decides which of two submissions sharing an effective_date
+-- supersedes the other, so it is not just metadata — it determines what gets
+-- scored. It had only `default now()`, and a default is merely what you get
+-- when the client stays silent: the insert policy is `with check (true)`, so
+-- anyone posting straight to PostgREST could supply their own created_at and
+-- reorder history, retroactively promoting a superseded allocation.
+--
+-- Forcing it in a trigger closes that. Confirmed already-safe and left alone:
+-- `id` is `generated always as identity`, which rejects a client-supplied
+-- value outright, and anon UPDATE/DELETE are blocked by the absence of any
+-- such policy (verified live: both return 0 affected rows against a real row).
+-- ─────────────────────────────────────────────────────────────────────────
+
+create or replace function force_allocation_created_at() returns trigger as $$
+begin
+  new.created_at := now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists allocations_force_created_at on allocations;
+create trigger allocations_force_created_at
+  before insert on allocations
+  for each row execute function force_allocation_created_at();

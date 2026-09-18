@@ -135,7 +135,7 @@ async function loadData() {
     // wildcard costs nothing.
     supabaseRequest("tournaments?select=*"),
     supabaseRequest("participants?select=id,name"),
-    supabaseRequest("allocations?select=tournament_id,participant_id,effective_date,positions,created_at&order=effective_date.asc"),
+    supabaseRequest("allocations?select=id,tournament_id,participant_id,effective_date,positions,created_at&order=effective_date.asc"),
     supabaseRequest("meta?select=fetched_at,base_currency"),
     supabaseRequest("prices?select=ticker,date,price"),
     // Same migration as end_date. Missing table resolves to null rather than
@@ -150,7 +150,9 @@ async function loadData() {
     ...p,
     allocations: allocRows
       .filter(a => a.tournament_id === tournamentId && a.participant_id === p.id)
-      .map(a => ({ effective_date: a.effective_date, positions: a.positions, created_at: a.created_at })),
+      // `id` is carried through so the submission history can cite the exact
+      // database row — the audit trail is only useful if you can point at it.
+      .map(a => ({ id: a.id, effective_date: a.effective_date, positions: a.positions, created_at: a.created_at })),
   }));
 
   portfolios = activeTournament ? portfoliosFor(activeTournament.id) : [];
@@ -852,12 +854,73 @@ function renderPortfolioChart(series) {
   chart.timeScale().fitContent();
 }
 
+/* ─── submission history ─────────────────────────────────────────────────
+   Every row ever filed for this participant, superseded ones included. The
+   scoring engine only ever shows the winning allocation, which made a
+   resubmission invisible: a participant could file twice, have the second
+   quietly replace the first, and nobody could see it had happened or what
+   changed. `allocations` is append-only, so the full record is already there
+   — it just had no way to be read. ─────────────────────────────────────── */
+function submissionHistory(participant, asOfDate = getToday()) {
+  const rows = [...participant.allocations].sort((a, b) =>
+    a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
+
+  return rows.map((a, i) => {
+    const laterEffective = rows.slice(i + 1).filter(r => r.effective_date <= asOfDate);
+    let status;
+    if (a.effective_date > asOfDate) status = "pending";
+    // A row replaced before it ever took effect: the later row shares its
+    // effective date, so this one never scored a single day.
+    else if (laterEffective.some(r => r.effective_date === a.effective_date)) status = "replaced";
+    else if (laterEffective.length) status = "past";
+    else status = "live";
+    return { ...a, status };
+  }).reverse();   // newest first
+}
+
+const SUBMISSION_LABEL = {
+  live:      ["live",      "Currently scoring"],
+  pending:   ["pending",   "Takes effect on its effective date"],
+  past:      ["past",      "Scored until the next submission took effect"],
+  replaced:  ["replaced",  "Replaced by a later submission on the same effective date — never scored"],
+};
+
+function renderSubmissionHistory(participant) {
+  const history = submissionHistory(participant);
+  if (history.length < 1) return "";
+
+  const rows = history.map(sub => {
+    const [label, tip] = SUBMISSION_LABEL[sub.status];
+    const positions = sub.positions
+      .map(p => `${escapeHtml(p.ticker || p.raw_name || "—")} ${escapeHtml(p.weight)}%`)
+      .join(" · ");
+    return `
+      <div class="submission ${sub.status === "replaced" ? "submission-replaced" : ""}">
+        <div class="submission-head">
+          <span class="submission-status submission-status-${sub.status}" title="${escapeHtml(tip)}">${label}</span>
+          <span class="submission-when">filed ${escapeHtml(sub.created_at.replace("T", " ").slice(0, 16))} UTC</span>
+          <span class="submission-eff">effective ${escapeHtml(sub.effective_date)}</span>
+          <span class="submission-id">#${escapeHtml(sub.id)}</span>
+        </div>
+        <div class="submission-positions">${positions}</div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="chart-block">
+      <h2>Submission history</h2>
+      <p class="submission-note">${history.length} submission(s) on record. Allocations are append-only — nothing here can be edited or deleted.</p>
+      ${rows}
+    </div>`;
+}
+
 function renderPositionCards(participant, win = activeWindow) {
   const section = document.getElementById("positions-section");
   const { current, pending } = effectiveAllocation(participant, windowAsOf(win));
 
   if (!current) {
-    section.innerHTML = `<p class="empty-state">No allocation submitted yet.</p>`;
+    section.innerHTML = `<p class="empty-state">No allocation submitted yet.</p>`
+      + renderSubmissionHistory(participant);
     return;
   }
 
@@ -871,6 +934,7 @@ function renderPositionCards(participant, win = activeWindow) {
       <h2>Next week (pending) — effective ${pending.effective_date}</h2>
       <div class="positions-grid" id="positions-grid-pending"></div>
     </div>` : ""}
+    ${renderSubmissionHistory(participant)}
   `;
   renderPositionCardGrid("positions-grid", current, win);
   // `scored: false` — a pending allocation hasn't started yet, so there is no

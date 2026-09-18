@@ -1,0 +1,45 @@
+name: Backup database
+
+# The Supabase free tier has no point-in-time recovery, so this is the only
+# restorable backup the project has. Committing the snapshot to git gives
+# versioned, off-site history for free, and — because fetch_prices.py upserts
+# prices in place — it is also the only record of what a price *was* on a given
+# day, which is what makes a past leaderboard reproducible.
+
+on:
+  schedule:
+    - cron: '30 5 * * *'   # daily, after the overnight price refreshes
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Snapshot tables
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/backup.py
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          # No changes means no commit; an unchanged table serializes
+          # byte-identically by design.
+          if git diff --staged --quiet; then
+            echo "No database changes since the last snapshot."
+          else
+            git commit -m "chore: database snapshot $(date -u +%Y-%m-%d)"
+            git push
+          fi

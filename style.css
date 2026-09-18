@@ -183,6 +183,57 @@ main { max-width: 960px; margin: 0 auto; padding: var(--space-xl) var(--space-lg
 
 /* Marks a return that includes an unscoreable position, so a data artefact
    isn't read as a market move. */
+/* ─── submission history ─────────────────────────────────────────────── */
+.submission-note {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-light);
+  margin-bottom: var(--space-md);
+}
+
+.submission {
+  border-top: 1px solid var(--rule);
+  padding: var(--space-sm) 0;
+}
+
+.submission-replaced { opacity: 0.55; }
+
+.submission-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-light);
+}
+
+.submission-status {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  cursor: help;
+}
+
+.submission-status-live     { color: var(--green); border-color: var(--green); }
+.submission-status-pending  { color: var(--amber); border-color: var(--amber); }
+.submission-status-replaced { color: var(--red); border-color: var(--red); text-decoration: line-through; }
+.submission-status-past     { color: var(--ink-mid); }
+
+.submission-id { margin-left: auto; opacity: 0.6; }
+
+.submission-positions {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-mid);
+  margin-top: 4px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
 .return-flag {
   font-family: var(--font-mono);
   font-size: 0.7rem;
