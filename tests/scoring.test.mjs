@@ -136,10 +136,10 @@ near("an entirely dead portfolio bottoms out at -100%",
 /* ══ 2. live data ═══════════════════════════════════════════════════════════ */
 const live = await bootApp({
   tournaments:  await fetchTable("tournaments"),
-  participants: await fetchTable("participants", "id,name"),
-  allocations:  await fetchTable("allocations", "tournament_id,participant_id,effective_date,positions,created_at"),
-  meta:         await fetchTable("meta", "fetched_at,base_currency"),
-  prices:       await fetchTable("prices", "ticker,date,price"),
+  participants: await fetchTable("participants"),
+  allocations:  await fetchTable("allocations"),
+  meta:         await fetchTable("meta"),
+  prices:       await fetchTable("prices"),
 });
 
 console.log("\nlive data — invariants that must hold whatever today's prices are");
@@ -185,19 +185,30 @@ for (const t of live.historyTournaments) {
 
 console.log("\nlive data — every submission ever filed is visible and accounted for");
 {
-  const allRows = (await fetchTable("allocations", "id,tournament_id,participant_id,effective_date,positions,created_at"))
+  const allRows = (await fetchTable("allocations"))
     .filter(r => r.tournament_id === live.activeTournament.id);
-  const shown = live.portfolios.flatMap(p => live.submissionHistory(p));
+  // Keep each participant's history separate. Flattening first and then
+  // matching on effective_date alone would let one participant's later filing
+  // "explain" another's replaced row — every row in this round shares the same
+  // effective date, so that check passes no matter what.
+  const byParticipant = live.portfolios.map(p => ({ p, history: live.submissionHistory(p) }));
+  const shown = byParticipant.flatMap(x => x.history);
+
   eq("history row count matches the database", shown.length, allRows.length);
+  ok("every row carries its database id", shown.every(s => Number.isInteger(s.id)),
+    shown.filter(s => !Number.isInteger(s.id)).length + " row(s) missing an id");
   ok("every database row id appears in some history",
     allRows.every(r => shown.some(s => s.id === r.id)),
     allRows.filter(r => !shown.some(s => s.id === r.id)).map(r => r.id).join(", "));
   ok("exactly one live submission per participant who has entered",
-    live.portfolios.filter(p => live.effectiveAllocation(p).current)
-      .every(p => live.submissionHistory(p).filter(s => s.status === "live").length === 1));
-  ok("a replaced row is one sharing its effective_date with a later filing",
-    shown.filter(s => s.status === "replaced").every(s =>
-      shown.some(o => o.id !== s.id && o.effective_date === s.effective_date && o.created_at > s.created_at)));
+    byParticipant.filter(x => live.effectiveAllocation(x.p).current)
+      .every(x => x.history.filter(s => s.status === "live").length === 1));
+  ok("a replaced row is superseded by that same participant's later filing",
+    byParticipant.every(({ history }) =>
+      history.filter(s => s.status === "replaced").every(s =>
+        history.some(o => o.id !== s.id
+          && o.effective_date === s.effective_date
+          && o.created_at > s.created_at))));
   const replaced = shown.filter(s => s.status === "replaced");
   console.log(`  note  ${shown.length} submissions on record, ${replaced.length} superseded`);
 }

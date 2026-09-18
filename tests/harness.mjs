@@ -16,7 +16,12 @@ const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // Delete tests/.cache to refresh.
 export async function fetchTable(name, select = "*") {
   fs.mkdirSync(CACHE, { recursive: true });
-  const file = path.join(CACHE, `${name}.json`);
+  // The select is part of the cache key. Keying on the table name alone let a
+  // narrow fetch poison a later wide one: a test asking for `id` silently got
+  // rows without it, and an assertion comparing ids then compared undefined to
+  // undefined and drew the wrong conclusion.
+  const slug = select === "*" ? "all" : select.replace(/[^a-z0-9]+/gi, "-");
+  const file = path.join(CACHE, `${name}.${slug}.json`);
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8"));
 
   const rows = [];
