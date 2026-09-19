@@ -1,2 +1,2 @@
-{"id": "t-2026-06", "name": "Jun–Sep 2026", "start_date": "2026-06-02", "status": "completed"}
-{"id": "t-2026-09", "name": "Sep 2026", "start_date": "2026-09-14", "status": "active"}
+{"end_date": "2026-09-02", "id": "t-2026-06", "name": "Jun–Sep 2026", "start_date": "2026-06-02", "status": "completed"}
+{"end_date": null, "id": "t-2026-09", "name": "Sep 2026", "start_date": "2026-09-14", "status": "active"}

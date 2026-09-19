@@ -210,6 +210,7 @@
 {"date": "2026-09-15", "price": 331.339996, "ticker": "AAPL"}
 {"date": "2026-09-16", "price": 332.410004, "ticker": "AAPL"}
 {"date": "2026-09-17", "price": 337.0, "ticker": "AAPL"}
+{"date": "2026-09-18", "price": 336.130005, "ticker": "AAPL"}
 {"date": "2026-06-02", "price": 6.74, "ticker": "ACHR"}
 {"date": "2026-06-03", "price": 6.53, "ticker": "ACHR"}
 {"date": "2026-06-04", "price": 6.38, "ticker": "ACHR"}
@@ -285,6 +286,7 @@
 {"date": "2026-09-15", "price": 5.47, "ticker": "ACHR"}
 {"date": "2026-09-16", "price": 5.22, "ticker": "ACHR"}
 {"date": "2026-09-17", "price": 5.4, "ticker": "ACHR"}
+{"date": "2026-09-18", "price": 5.26, "ticker": "ACHR"}
 {"date": "2026-06-02", "price": 113.239998, "ticker": "AGQ"}
 {"date": "2026-06-03", "price": 107.300003, "ticker": "AGQ"}
 {"date": "2026-06-04", "price": 109.849998, "ticker": "AGQ"}
@@ -360,6 +362,7 @@
 {"date": "2026-09-15", "price": 75.120003, "ticker": "AGQ"}
 {"date": "2026-09-16", "price": 73.769997, "ticker": "AGQ"}
 {"date": "2026-09-17", "price": 78.910004, "ticker": "AGQ"}
+{"date": "2026-09-18", "price": 81.480003, "ticker": "AGQ"}
 {"date": "2026-06-02", "price": 1899.740234, "ticker": "AMOT.TA"}
 {"date": "2026-06-03", "price": 1892.741211, "ticker": "AMOT.TA"}
 {"date": "2026-06-04", "price": 1851.746826, "ticker": "AMOT.TA"}
@@ -512,6 +515,7 @@
 {"date": "2026-09-15", "price": 192.839996, "ticker": "ANET"}
 {"date": "2026-09-16", "price": 197.539993, "ticker": "ANET"}
 {"date": "2026-09-17", "price": 199.529999, "ticker": "ANET"}
+{"date": "2026-09-18", "price": 199.389999, "ticker": "ANET"}
 {"date": "2026-06-02", "price": 128.218414, "ticker": "APO"}
 {"date": "2026-06-03", "price": 123.826958, "ticker": "APO"}
 {"date": "2026-06-04", "price": 127.869888, "ticker": "APO"}
@@ -587,6 +591,7 @@
 {"date": "2026-09-15", "price": 127.0, "ticker": "APO"}
 {"date": "2026-09-16", "price": 124.529999, "ticker": "APO"}
 {"date": "2026-09-17", "price": 126.0, "ticker": "APO"}
+{"date": "2026-09-18", "price": 125.910004, "ticker": "APO"}
 {"date": "2026-06-02", "price": 605.630005, "ticker": "APP"}
 {"date": "2026-06-03", "price": 570.830017, "ticker": "APP"}
 {"date": "2026-06-04", "price": 558.869995, "ticker": "APP"}
@@ -662,15 +667,16 @@
 {"date": "2026-09-15", "price": 331.459991, "ticker": "APP"}
 {"date": "2026-09-16", "price": 326.559998, "ticker": "APP"}
 {"date": "2026-09-17", "price": 321.600006, "ticker": "APP"}
+{"date": "2026-09-18", "price": 308.059998, "ticker": "APP"}
 {"date": "2026-06-02", "price": 18.048809, "ticker": "ARCC"}
 {"date": "2026-06-03", "price": 17.772892, "ticker": "ARCC"}
-{"date": "2026-06-04", "price": 17.982208, "ticker": "ARCC"}
+{"date": "2026-06-04", "price": 17.98221, "ticker": "ARCC"}
 {"date": "2026-06-05", "price": 17.877552, "ticker": "ARCC"}
 {"date": "2026-06-08", "price": 17.858522, "ticker": "ARCC"}
 {"date": "2026-06-09", "price": 18.105898, "ticker": "ARCC"}
 {"date": "2026-06-10", "price": 18.115412, "ticker": "ARCC"}
 {"date": "2026-06-11", "price": 18.143953, "ticker": "ARCC"}
-{"date": "2026-06-12", "price": 18.324726, "ticker": "ARCC"}
+{"date": "2026-06-12", "price": 18.324728, "ticker": "ARCC"}
 {"date": "2026-06-15", "price": 18.168608, "ticker": "ARCC"}
 {"date": "2026-06-16", "price": 18.168608, "ticker": "ARCC"}
 {"date": "2026-06-17", "price": 17.661213, "ticker": "ARCC"}
@@ -737,6 +743,7 @@
 {"date": "2026-09-15", "price": 19.370001, "ticker": "ARCC"}
 {"date": "2026-09-16", "price": 19.370001, "ticker": "ARCC"}
 {"date": "2026-09-17", "price": 19.65, "ticker": "ARCC"}
+{"date": "2026-09-18", "price": 19.4, "ticker": "ARCC"}
 {"date": "2026-06-02", "price": 363.5, "ticker": "ASTOR.IS"}
 {"date": "2026-06-03", "price": 358.5, "ticker": "ASTOR.IS"}
 {"date": "2026-06-04", "price": 322.75, "ticker": "ASTOR.IS"}
@@ -814,7 +821,7 @@
 {"date": "2026-09-15", "price": 272.25, "ticker": "ASTOR.IS"}
 {"date": "2026-09-16", "price": 245.5, "ticker": "ASTOR.IS"}
 {"date": "2026-09-17", "price": 255.5, "ticker": "ASTOR.IS"}
-{"date": "2026-09-18", "price": 258.5, "ticker": "ASTOR.IS"}
+{"date": "2026-09-18", "price": 248.0, "ticker": "ASTOR.IS"}
 {"date": "2026-06-02", "price": 480.809052, "ticker": "AVGO"}
 {"date": "2026-06-03", "price": 478.472748, "ticker": "AVGO"}
 {"date": "2026-06-04", "price": 418.248047, "ticker": "AVGO"}
@@ -890,6 +897,7 @@
 {"date": "2026-09-15", "price": 339.269989, "ticker": "AVGO"}
 {"date": "2026-09-16", "price": 339.51001, "ticker": "AVGO"}
 {"date": "2026-09-17", "price": 347.299988, "ticker": "AVGO"}
+{"date": "2026-09-18", "price": 357.609985, "ticker": "AVGO"}
 {"date": "2026-06-02", "price": 177.449997, "ticker": "AZN"}
 {"date": "2026-06-03", "price": 176.279999, "ticker": "AZN"}
 {"date": "2026-06-04", "price": 181.800003, "ticker": "AZN"}
@@ -965,6 +973,7 @@
 {"date": "2026-09-15", "price": 161.850006, "ticker": "AZN"}
 {"date": "2026-09-16", "price": 162.889999, "ticker": "AZN"}
 {"date": "2026-09-17", "price": 166.139999, "ticker": "AZN"}
+{"date": "2026-09-18", "price": 166.080002, "ticker": "AZN"}
 {"date": "2026-06-02", "price": 129.629501, "ticker": "BABA"}
 {"date": "2026-06-03", "price": 126.052338, "ticker": "BABA"}
 {"date": "2026-06-04", "price": 124.803802, "ticker": "BABA"}
@@ -1040,6 +1049,7 @@
 {"date": "2026-09-15", "price": 109.339996, "ticker": "BABA"}
 {"date": "2026-09-16", "price": 107.269997, "ticker": "BABA"}
 {"date": "2026-09-17", "price": 108.540001, "ticker": "BABA"}
+{"date": "2026-09-18", "price": 113.239998, "ticker": "BABA"}
 {"date": "2026-06-02", "price": 14.2, "ticker": "BALSU.IS"}
 {"date": "2026-06-03", "price": 13.75, "ticker": "BALSU.IS"}
 {"date": "2026-06-04", "price": 13.73, "ticker": "BALSU.IS"}
@@ -1117,7 +1127,7 @@
 {"date": "2026-09-15", "price": 8.11, "ticker": "BALSU.IS"}
 {"date": "2026-09-16", "price": 7.3, "ticker": "BALSU.IS"}
 {"date": "2026-09-17", "price": 6.95, "ticker": "BALSU.IS"}
-{"date": "2026-09-18", "price": 6.32, "ticker": "BALSU.IS"}
+{"date": "2026-09-18", "price": 6.26, "ticker": "BALSU.IS"}
 {"date": "2026-06-02", "price": 376.499542, "ticker": "BIMAS.IS"}
 {"date": "2026-06-03", "price": 376.746735, "ticker": "BIMAS.IS"}
 {"date": "2026-06-04", "price": 368.83606, "ticker": "BIMAS.IS"}
@@ -1186,7 +1196,7 @@
 {"date": "2026-09-02", "price": 403.807129, "ticker": "BIMAS.IS"}
 {"date": "2026-09-03", "price": 410.268036, "ticker": "BIMAS.IS"}
 {"date": "2026-09-04", "price": 413.25, "ticker": "BIMAS.IS"}
-{"date": "2026-09-07", "price": 418.0, "ticker": "BIMAS.IS"}
+{"date": "2026-09-07", "price": 415.486481, "ticker": "BIMAS.IS"}
 {"date": "2026-09-08", "price": 417.971436, "ticker": "BIMAS.IS"}
 {"date": "2026-09-09", "price": 424.929352, "ticker": "BIMAS.IS"}
 {"date": "2026-09-10", "price": 427.414307, "ticker": "BIMAS.IS"}
@@ -1195,7 +1205,7 @@
 {"date": "2026-09-15", "price": 413.25, "ticker": "BIMAS.IS"}
 {"date": "2026-09-16", "price": 405.5, "ticker": "BIMAS.IS"}
 {"date": "2026-09-17", "price": 418.0, "ticker": "BIMAS.IS"}
-{"date": "2026-09-18", "price": 414.25, "ticker": "BIMAS.IS"}
+{"date": "2026-09-18", "price": 419.75, "ticker": "BIMAS.IS"}
 {"date": "2026-06-02", "price": 89.139999, "ticker": "BNTX"}
 {"date": "2026-06-03", "price": 88.449997, "ticker": "BNTX"}
 {"date": "2026-06-04", "price": 89.589996, "ticker": "BNTX"}
@@ -1271,6 +1281,7 @@
 {"date": "2026-09-15", "price": 96.690002, "ticker": "BNTX"}
 {"date": "2026-09-16", "price": 95.830002, "ticker": "BNTX"}
 {"date": "2026-09-17", "price": 98.660004, "ticker": "BNTX"}
+{"date": "2026-09-18", "price": 96.059998, "ticker": "BNTX"}
 {"date": "2026-06-02", "price": 66703.65625, "ticker": "BTC-USD"}
 {"date": "2026-06-03", "price": 64014.367188, "ticker": "BTC-USD"}
 {"date": "2026-06-04", "price": 63801.574219, "ticker": "BTC-USD"}
@@ -1379,7 +1390,8 @@
 {"date": "2026-09-15", "price": 75612.507812, "ticker": "BTC-USD"}
 {"date": "2026-09-16", "price": 76150.320312, "ticker": "BTC-USD"}
 {"date": "2026-09-17", "price": 76403.773438, "ticker": "BTC-USD"}
-{"date": "2026-09-18", "price": 77864.648438, "ticker": "BTC-USD"}
+{"date": "2026-09-18", "price": 81086.226562, "ticker": "BTC-USD"}
+{"date": "2026-09-19", "price": 81040.648438, "ticker": "BTC-USD"}
 {"date": "2026-06-02", "price": 23.00721, "ticker": "BXSL"}
 {"date": "2026-06-03", "price": 22.532536, "ticker": "BXSL"}
 {"date": "2026-06-04", "price": 23.055645, "ticker": "BXSL"}
@@ -1455,6 +1467,7 @@
 {"date": "2026-09-15", "price": 24.790001, "ticker": "BXSL"}
 {"date": "2026-09-16", "price": 24.879999, "ticker": "BXSL"}
 {"date": "2026-09-17", "price": 25.32, "ticker": "BXSL"}
+{"date": "2026-09-18", "price": 24.84, "ticker": "BXSL"}
 {"date": "2026-06-02", "price": 22.950001, "ticker": "BYND"}
 {"date": "2026-06-03", "price": 22.200001, "ticker": "BYND"}
 {"date": "2026-06-04", "price": 23.58, "ticker": "BYND"}
@@ -1530,6 +1543,7 @@
 {"date": "2026-09-15", "price": 9.99, "ticker": "BYND"}
 {"date": "2026-09-16", "price": 10.95, "ticker": "BYND"}
 {"date": "2026-09-17", "price": 11.7, "ticker": "BYND"}
+{"date": "2026-09-18", "price": 11.51, "ticker": "BYND"}
 {"date": "2026-06-02", "price": 272.231506, "ticker": "CEG"}
 {"date": "2026-06-03", "price": 266.829803, "ticker": "CEG"}
 {"date": "2026-06-04", "price": 264.183868, "ticker": "CEG"}
@@ -1605,6 +1619,7 @@
 {"date": "2026-09-15", "price": 259.890015, "ticker": "CEG"}
 {"date": "2026-09-16", "price": 259.529999, "ticker": "CEG"}
 {"date": "2026-09-17", "price": 262.799988, "ticker": "CEG"}
+{"date": "2026-09-18", "price": 254.710007, "ticker": "CEG"}
 {"date": "2026-06-02", "price": 15.34, "ticker": "CGEM"}
 {"date": "2026-06-03", "price": 15.21, "ticker": "CGEM"}
 {"date": "2026-06-04", "price": 14.43, "ticker": "CGEM"}
@@ -1680,6 +1695,7 @@
 {"date": "2026-09-15", "price": 20.540001, "ticker": "CGEM"}
 {"date": "2026-09-16", "price": 20.629999, "ticker": "CGEM"}
 {"date": "2026-09-17", "price": 21.360001, "ticker": "CGEM"}
+{"date": "2026-09-18", "price": 21.08, "ticker": "CGEM"}
 {"date": "2026-06-02", "price": 1.272038, "ticker": "CHFUSD=X"}
 {"date": "2026-06-03", "price": 1.268633, "ticker": "CHFUSD=X"}
 {"date": "2026-06-04", "price": 1.264175, "ticker": "CHFUSD=X"}
@@ -1758,7 +1774,7 @@
 {"date": "2026-09-15", "price": 1.22384, "ticker": "CHFUSD=X"}
 {"date": "2026-09-16", "price": 1.220903, "ticker": "CHFUSD=X"}
 {"date": "2026-09-17", "price": 1.211651, "ticker": "CHFUSD=X"}
-{"date": "2026-09-18", "price": 1.213106, "ticker": "CHFUSD=X"}
+{"date": "2026-09-18", "price": 1.216826, "ticker": "CHFUSD=X"}
 {"date": "2026-06-02", "price": 10.95, "ticker": "CNH"}
 {"date": "2026-06-03", "price": 11.04, "ticker": "CNH"}
 {"date": "2026-06-04", "price": 10.85, "ticker": "CNH"}
@@ -1834,6 +1850,7 @@
 {"date": "2026-09-15", "price": 14.0, "ticker": "CNH"}
 {"date": "2026-09-16", "price": 13.52, "ticker": "CNH"}
 {"date": "2026-09-17", "price": 13.55, "ticker": "CNH"}
+{"date": "2026-09-18", "price": 13.45, "ticker": "CNH"}
 {"date": "2026-06-02", "price": 119.269997, "ticker": "CRWV"}
 {"date": "2026-06-03", "price": 110.93, "ticker": "CRWV"}
 {"date": "2026-06-04", "price": 108.029999, "ticker": "CRWV"}
@@ -1909,6 +1926,7 @@
 {"date": "2026-09-15", "price": 80.919998, "ticker": "CRWV"}
 {"date": "2026-09-16", "price": 83.349998, "ticker": "CRWV"}
 {"date": "2026-09-17", "price": 79.879997, "ticker": "CRWV"}
+{"date": "2026-09-18", "price": 81.360001, "ticker": "CRWV"}
 {"date": "2026-06-02", "price": 10.15, "ticker": "DMRGD.IS"}
 {"date": "2026-06-03", "price": 10.9, "ticker": "DMRGD.IS"}
 {"date": "2026-06-04", "price": 10.8, "ticker": "DMRGD.IS"}
@@ -1977,6 +1995,7 @@
 {"date": "2026-09-02", "price": 11.35, "ticker": "DMRGD.IS"}
 {"date": "2026-09-03", "price": 10.93, "ticker": "DMRGD.IS"}
 {"date": "2026-09-04", "price": 10.7, "ticker": "DMRGD.IS"}
+{"date": "2026-09-07", "price": 10.6, "ticker": "DMRGD.IS"}
 {"date": "2026-09-08", "price": 10.51, "ticker": "DMRGD.IS"}
 {"date": "2026-09-09", "price": 10.69, "ticker": "DMRGD.IS"}
 {"date": "2026-09-10", "price": 10.6, "ticker": "DMRGD.IS"}
@@ -1985,7 +2004,7 @@
 {"date": "2026-09-15", "price": 10.5, "ticker": "DMRGD.IS"}
 {"date": "2026-09-16", "price": 10.8, "ticker": "DMRGD.IS"}
 {"date": "2026-09-17", "price": 11.88, "ticker": "DMRGD.IS"}
-{"date": "2026-09-18", "price": 11.92, "ticker": "DMRGD.IS"}
+{"date": "2026-09-18", "price": 11.14, "ticker": "DMRGD.IS"}
 {"date": "2026-06-02", "price": 112.978531, "ticker": "DPST"}
 {"date": "2026-06-03", "price": 105.030838, "ticker": "DPST"}
 {"date": "2026-06-04", "price": 114.669525, "ticker": "DPST"}
@@ -2061,6 +2080,7 @@
 {"date": "2026-09-15", "price": 131.970001, "ticker": "DPST"}
 {"date": "2026-09-16", "price": 125.199997, "ticker": "DPST"}
 {"date": "2026-09-17", "price": 125.0, "ticker": "DPST"}
+{"date": "2026-09-18", "price": 124.580002, "ticker": "DPST"}
 {"date": "2026-06-02", "price": 99.199997, "ticker": "ENKAI.IS"}
 {"date": "2026-06-03", "price": 95.900002, "ticker": "ENKAI.IS"}
 {"date": "2026-06-04", "price": 94.949997, "ticker": "ENKAI.IS"}
@@ -2138,7 +2158,7 @@
 {"date": "2026-09-15", "price": 85.800003, "ticker": "ENKAI.IS"}
 {"date": "2026-09-16", "price": 81.949997, "ticker": "ENKAI.IS"}
 {"date": "2026-09-17", "price": 85.75, "ticker": "ENKAI.IS"}
-{"date": "2026-09-18", "price": 85.599998, "ticker": "ENKAI.IS"}
+{"date": "2026-09-18", "price": 85.349998, "ticker": "ENKAI.IS"}
 {"date": "2026-06-02", "price": 1857.716309, "ticker": "ETH-USD"}
 {"date": "2026-06-03", "price": 1811.7323, "ticker": "ETH-USD"}
 {"date": "2026-06-04", "price": 1769.580566, "ticker": "ETH-USD"}
@@ -2247,7 +2267,8 @@
 {"date": "2026-09-15", "price": 2399.086914, "ticker": "ETH-USD"}
 {"date": "2026-09-16", "price": 2416.119873, "ticker": "ETH-USD"}
 {"date": "2026-09-17", "price": 2447.106689, "ticker": "ETH-USD"}
-{"date": "2026-09-18", "price": 2494.030029, "ticker": "ETH-USD"}
+{"date": "2026-09-18", "price": 2618.199951, "ticker": "ETH-USD"}
+{"date": "2026-09-19", "price": 2624.669922, "ticker": "ETH-USD"}
 {"date": "2026-06-02", "price": 416.595001, "ticker": "ETN"}
 {"date": "2026-06-03", "price": 420.176208, "ticker": "ETN"}
 {"date": "2026-06-04", "price": 417.582581, "ticker": "ETN"}
@@ -2323,6 +2344,7 @@
 {"date": "2026-09-15", "price": 392.399994, "ticker": "ETN"}
 {"date": "2026-09-16", "price": 397.799988, "ticker": "ETN"}
 {"date": "2026-09-17", "price": 409.459991, "ticker": "ETN"}
+{"date": "2026-09-18", "price": 424.769989, "ticker": "ETN"}
 {"date": "2026-06-02", "price": 1.163548, "ticker": "EURUSD=X"}
 {"date": "2026-06-03", "price": 1.16221, "ticker": "EURUSD=X"}
 {"date": "2026-06-04", "price": 1.160941, "ticker": "EURUSD=X"}
@@ -2403,7 +2425,7 @@
 {"date": "2026-09-15", "price": 1.154854, "ticker": "EURUSD=X"}
 {"date": "2026-09-16", "price": 1.153762, "ticker": "EURUSD=X"}
 {"date": "2026-09-17", "price": 1.146986, "ticker": "EURUSD=X"}
-{"date": "2026-09-18", "price": 1.149029, "ticker": "EURUSD=X"}
+{"date": "2026-09-18", "price": 1.148897, "ticker": "EURUSD=X"}
 {"date": "2026-06-02", "price": 43.290001, "ticker": "FOUR"}
 {"date": "2026-06-03", "price": 40.220001, "ticker": "FOUR"}
 {"date": "2026-06-04", "price": 39.290001, "ticker": "FOUR"}
@@ -2479,6 +2501,7 @@
 {"date": "2026-09-15", "price": 42.349998, "ticker": "FOUR"}
 {"date": "2026-09-16", "price": 42.09, "ticker": "FOUR"}
 {"date": "2026-09-17", "price": 41.349998, "ticker": "FOUR"}
+{"date": "2026-09-18", "price": 38.98, "ticker": "FOUR"}
 {"date": "2026-06-02", "price": 88.900002, "ticker": "FROTO.IS"}
 {"date": "2026-06-03", "price": 88.949997, "ticker": "FROTO.IS"}
 {"date": "2026-06-04", "price": 88.599998, "ticker": "FROTO.IS"}
@@ -2547,6 +2570,7 @@
 {"date": "2026-09-02", "price": 76.25, "ticker": "FROTO.IS"}
 {"date": "2026-09-03", "price": 75.650002, "ticker": "FROTO.IS"}
 {"date": "2026-09-04", "price": 77.199997, "ticker": "FROTO.IS"}
+{"date": "2026-09-07", "price": 79.650002, "ticker": "FROTO.IS"}
 {"date": "2026-09-08", "price": 82.800003, "ticker": "FROTO.IS"}
 {"date": "2026-09-09", "price": 83.949997, "ticker": "FROTO.IS"}
 {"date": "2026-09-10", "price": 81.900002, "ticker": "FROTO.IS"}
@@ -2555,7 +2579,7 @@
 {"date": "2026-09-15", "price": 78.400002, "ticker": "FROTO.IS"}
 {"date": "2026-09-16", "price": 74.650002, "ticker": "FROTO.IS"}
 {"date": "2026-09-17", "price": 77.449997, "ticker": "FROTO.IS"}
-{"date": "2026-09-18", "price": 76.949997, "ticker": "FROTO.IS"}
+{"date": "2026-09-18", "price": 76.0, "ticker": "FROTO.IS"}
 {"date": "2026-06-02", "price": 1.346, "ticker": "GBPUSD=X"}
 {"date": "2026-06-03", "price": 1.345424, "ticker": "GBPUSD=X"}
 {"date": "2026-06-04", "price": 1.342714, "ticker": "GBPUSD=X"}
@@ -2634,7 +2658,7 @@
 {"date": "2026-09-15", "price": 1.350093, "ticker": "GBPUSD=X"}
 {"date": "2026-09-16", "price": 1.347346, "ticker": "GBPUSD=X"}
 {"date": "2026-09-17", "price": 1.338294, "ticker": "GBPUSD=X"}
-{"date": "2026-09-18", "price": 1.337184, "ticker": "GBPUSD=X"}
+{"date": "2026-09-18", "price": 1.339351, "ticker": "GBPUSD=X"}
 {"date": "2026-06-02", "price": 317.324463, "ticker": "GE"}
 {"date": "2026-06-03", "price": 314.248291, "ticker": "GE"}
 {"date": "2026-06-04", "price": 327.242096, "ticker": "GE"}
@@ -2710,6 +2734,7 @@
 {"date": "2026-09-15", "price": 307.049988, "ticker": "GE"}
 {"date": "2026-09-16", "price": 312.899994, "ticker": "GE"}
 {"date": "2026-09-17", "price": 313.470001, "ticker": "GE"}
+{"date": "2026-09-18", "price": 314.269989, "ticker": "GE"}
 {"date": "2026-06-02", "price": 969.174805, "ticker": "GEV"}
 {"date": "2026-06-03", "price": 958.870056, "ticker": "GEV"}
 {"date": "2026-06-04", "price": 962.838074, "ticker": "GEV"}
@@ -2785,6 +2810,7 @@
 {"date": "2026-09-15", "price": 882.809998, "ticker": "GEV"}
 {"date": "2026-09-16", "price": 925.090027, "ticker": "GEV"}
 {"date": "2026-09-17", "price": 924.929993, "ticker": "GEV"}
+{"date": "2026-09-18", "price": 940.330017, "ticker": "GEV"}
 {"date": "2026-06-02", "price": 51.242455, "ticker": "GLNG"}
 {"date": "2026-06-03", "price": 51.431538, "ticker": "GLNG"}
 {"date": "2026-06-04", "price": 51.162834, "ticker": "GLNG"}
@@ -2860,15 +2886,16 @@
 {"date": "2026-09-15", "price": 50.389999, "ticker": "GLNG"}
 {"date": "2026-09-16", "price": 50.360001, "ticker": "GLNG"}
 {"date": "2026-09-17", "price": 50.790001, "ticker": "GLNG"}
+{"date": "2026-09-18", "price": 51.790001, "ticker": "GLNG"}
 {"date": "2026-06-02", "price": 10.526334, "ticker": "GPK"}
-{"date": "2026-06-03", "price": 10.575249, "ticker": "GPK"}
-{"date": "2026-06-04", "price": 10.408939, "ticker": "GPK"}
-{"date": "2026-06-05", "price": 10.31111, "ticker": "GPK"}
+{"date": "2026-06-03", "price": 10.575248, "ticker": "GPK"}
+{"date": "2026-06-04", "price": 10.40894, "ticker": "GPK"}
+{"date": "2026-06-05", "price": 10.311111, "ticker": "GPK"}
 {"date": "2026-06-08", "price": 10.291546, "ticker": "GPK"}
 {"date": "2026-06-09", "price": 10.555682, "ticker": "GPK"}
 {"date": "2026-06-10", "price": 10.105672, "ticker": "GPK"}
 {"date": "2026-06-11", "price": 10.399157, "ticker": "GPK"}
-{"date": "2026-06-12", "price": 10.467637, "ticker": "GPK"}
+{"date": "2026-06-12", "price": 10.467636, "ticker": "GPK"}
 {"date": "2026-06-15", "price": 10.843246, "ticker": "GPK"}
 {"date": "2026-06-16", "price": 10.94209, "ticker": "GPK"}
 {"date": "2026-06-17", "price": 10.526943, "ticker": "GPK"}
@@ -2935,6 +2962,7 @@
 {"date": "2026-09-15", "price": 9.66, "ticker": "GPK"}
 {"date": "2026-09-16", "price": 9.66, "ticker": "GPK"}
 {"date": "2026-09-17", "price": 9.84, "ticker": "GPK"}
+{"date": "2026-09-18", "price": 9.31, "ticker": "GPK"}
 {"date": "2026-06-02", "price": 27.74, "ticker": "GWIND.IS"}
 {"date": "2026-06-03", "price": 26.799999, "ticker": "GWIND.IS"}
 {"date": "2026-06-04", "price": 26.92, "ticker": "GWIND.IS"}
@@ -3012,7 +3040,7 @@
 {"date": "2026-09-15", "price": 22.120001, "ticker": "GWIND.IS"}
 {"date": "2026-09-16", "price": 21.26, "ticker": "GWIND.IS"}
 {"date": "2026-09-17", "price": 21.5, "ticker": "GWIND.IS"}
-{"date": "2026-09-18", "price": 21.139999, "ticker": "GWIND.IS"}
+{"date": "2026-09-18", "price": 21.48, "ticker": "GWIND.IS"}
 {"date": "2026-06-02", "price": 88.160004, "ticker": "HOOD"}
 {"date": "2026-06-03", "price": 82.849998, "ticker": "HOOD"}
 {"date": "2026-06-04", "price": 88.330002, "ticker": "HOOD"}
@@ -3088,6 +3116,7 @@
 {"date": "2026-09-15", "price": 110.449997, "ticker": "HOOD"}
 {"date": "2026-09-16", "price": 104.419998, "ticker": "HOOD"}
 {"date": "2026-09-17", "price": 109.809998, "ticker": "HOOD"}
+{"date": "2026-09-18", "price": 119.82, "ticker": "HOOD"}
 {"date": "2026-06-02", "price": 0.354507, "ticker": "ILSUSD=X"}
 {"date": "2026-06-03", "price": 0.351351, "ticker": "ILSUSD=X"}
 {"date": "2026-06-04", "price": 0.34832, "ticker": "ILSUSD=X"}
@@ -3166,48 +3195,48 @@
 {"date": "2026-09-15", "price": 0.327635, "ticker": "ILSUSD=X"}
 {"date": "2026-09-16", "price": 0.328704, "ticker": "ILSUSD=X"}
 {"date": "2026-09-17", "price": 0.330388, "ticker": "ILSUSD=X"}
-{"date": "2026-09-18", "price": 0.330417, "ticker": "ILSUSD=X"}
+{"date": "2026-09-18", "price": 0.330896, "ticker": "ILSUSD=X"}
 {"date": "2026-06-02", "price": 94.6259, "ticker": "JNK"}
 {"date": "2026-06-03", "price": 94.419365, "ticker": "JNK"}
 {"date": "2026-06-04", "price": 94.566887, "ticker": "JNK"}
-{"date": "2026-06-05", "price": 94.153816, "ticker": "JNK"}
+{"date": "2026-06-05", "price": 94.153809, "ticker": "JNK"}
 {"date": "2026-06-08", "price": 94.222649, "ticker": "JNK"}
-{"date": "2026-06-09", "price": 94.340675, "ticker": "JNK"}
-{"date": "2026-06-10", "price": 94.153816, "ticker": "JNK"}
+{"date": "2026-06-09", "price": 94.340683, "ticker": "JNK"}
+{"date": "2026-06-10", "price": 94.153809, "ticker": "JNK"}
 {"date": "2026-06-11", "price": 94.694756, "ticker": "JNK"}
 {"date": "2026-06-12", "price": 94.714417, "ticker": "JNK"}
-{"date": "2026-06-15", "price": 94.861954, "ticker": "JNK"}
-{"date": "2026-06-16", "price": 94.842278, "ticker": "JNK"}
+{"date": "2026-06-15", "price": 94.861946, "ticker": "JNK"}
+{"date": "2026-06-16", "price": 94.842285, "ticker": "JNK"}
 {"date": "2026-06-17", "price": 94.478371, "ticker": "JNK"}
-{"date": "2026-06-18", "price": 94.80294, "ticker": "JNK"}
+{"date": "2026-06-18", "price": 94.802933, "ticker": "JNK"}
 {"date": "2026-06-22", "price": 94.714417, "ticker": "JNK"}
-{"date": "2026-06-23", "price": 94.665237, "ticker": "JNK"}
-{"date": "2026-06-24", "price": 94.606232, "ticker": "JNK"}
+{"date": "2026-06-23", "price": 94.665245, "ticker": "JNK"}
+{"date": "2026-06-24", "price": 94.606239, "ticker": "JNK"}
 {"date": "2026-06-25", "price": 94.694756, "ticker": "JNK"}
 {"date": "2026-06-26", "price": 94.635742, "ticker": "JNK"}
-{"date": "2026-06-29", "price": 94.812782, "ticker": "JNK"}
+{"date": "2026-06-29", "price": 94.812775, "ticker": "JNK"}
 {"date": "2026-06-30", "price": 94.783272, "ticker": "JNK"}
 {"date": "2026-07-01", "price": 94.823814, "ticker": "JNK"}
 {"date": "2026-07-02", "price": 94.932602, "ticker": "JNK"}
-{"date": "2026-07-06", "price": 95.090851, "ticker": "JNK"}
+{"date": "2026-07-06", "price": 95.090843, "ticker": "JNK"}
 {"date": "2026-07-07", "price": 94.991951, "ticker": "JNK"}
-{"date": "2026-07-08", "price": 94.843597, "ticker": "JNK"}
+{"date": "2026-07-08", "price": 94.843605, "ticker": "JNK"}
 {"date": "2026-07-09", "price": 94.942497, "ticker": "JNK"}
 {"date": "2026-07-10", "price": 94.873268, "ticker": "JNK"}
 {"date": "2026-07-13", "price": 94.705139, "ticker": "JNK"}
-{"date": "2026-07-14", "price": 94.843597, "ticker": "JNK"}
-{"date": "2026-07-15", "price": 95.011719, "ticker": "JNK"}
+{"date": "2026-07-14", "price": 94.843605, "ticker": "JNK"}
+{"date": "2026-07-15", "price": 95.011726, "ticker": "JNK"}
 {"date": "2026-07-16", "price": 95.021614, "ticker": "JNK"}
-{"date": "2026-07-17", "price": 94.922714, "ticker": "JNK"}
+{"date": "2026-07-17", "price": 94.922722, "ticker": "JNK"}
 {"date": "2026-07-20", "price": 94.893044, "ticker": "JNK"}
-{"date": "2026-07-21", "price": 94.843597, "ticker": "JNK"}
+{"date": "2026-07-21", "price": 94.843605, "ticker": "JNK"}
 {"date": "2026-07-22", "price": 94.695244, "ticker": "JNK"}
-{"date": "2026-07-23", "price": 94.349106, "ticker": "JNK"}
-{"date": "2026-07-24", "price": 94.339211, "ticker": "JNK"}
+{"date": "2026-07-23", "price": 94.349113, "ticker": "JNK"}
+{"date": "2026-07-24", "price": 94.339218, "ticker": "JNK"}
 {"date": "2026-07-27", "price": 94.408447, "ticker": "JNK"}
 {"date": "2026-07-28", "price": 94.556793, "ticker": "JNK"}
-{"date": "2026-07-29", "price": 94.339211, "ticker": "JNK"}
-{"date": "2026-07-30", "price": 94.606239, "ticker": "JNK"}
+{"date": "2026-07-29", "price": 94.339218, "ticker": "JNK"}
+{"date": "2026-07-30", "price": 94.606247, "ticker": "JNK"}
 {"date": "2026-07-31", "price": 94.626022, "ticker": "JNK"}
 {"date": "2026-08-03", "price": 94.921371, "ticker": "JNK"}
 {"date": "2026-08-04", "price": 95.219711, "ticker": "JNK"}
@@ -3242,6 +3271,7 @@
 {"date": "2026-09-15", "price": 94.300003, "ticker": "JNK"}
 {"date": "2026-09-16", "price": 94.389999, "ticker": "JNK"}
 {"date": "2026-09-17", "price": 94.739998, "ticker": "JNK"}
+{"date": "2026-09-18", "price": 94.550003, "ticker": "JNK"}
 {"date": "2026-06-02", "price": 94.270859, "ticker": "KKR"}
 {"date": "2026-06-03", "price": 90.358292, "ticker": "KKR"}
 {"date": "2026-06-04", "price": 95.278938, "ticker": "KKR"}
@@ -3317,6 +3347,7 @@
 {"date": "2026-09-15", "price": 100.0, "ticker": "KKR"}
 {"date": "2026-09-16", "price": 96.839996, "ticker": "KKR"}
 {"date": "2026-09-17", "price": 98.190002, "ticker": "KKR"}
+{"date": "2026-09-18", "price": 98.809998, "ticker": "KKR"}
 {"date": "2026-06-02", "price": 61.240501, "ticker": "KORU"}
 {"date": "2026-06-03", "price": 59.835999, "ticker": "KORU"}
 {"date": "2026-06-04", "price": 52.485001, "ticker": "KORU"}
@@ -3392,6 +3423,7 @@
 {"date": "2026-09-15", "price": 18.6, "ticker": "KORU"}
 {"date": "2026-09-16", "price": 18.280001, "ticker": "KORU"}
 {"date": "2026-09-17", "price": 20.41, "ticker": "KORU"}
+{"date": "2026-09-18", "price": 20.040001, "ticker": "KORU"}
 {"date": "2026-06-02", "price": 15.23, "ticker": "KOTON.IS"}
 {"date": "2026-06-03", "price": 14.92, "ticker": "KOTON.IS"}
 {"date": "2026-06-04", "price": 14.95, "ticker": "KOTON.IS"}
@@ -3469,7 +3501,7 @@
 {"date": "2026-09-15", "price": 12.05, "ticker": "KOTON.IS"}
 {"date": "2026-09-16", "price": 11.46, "ticker": "KOTON.IS"}
 {"date": "2026-09-17", "price": 11.49, "ticker": "KOTON.IS"}
-{"date": "2026-09-18", "price": 11.25, "ticker": "KOTON.IS"}
+{"date": "2026-09-18", "price": 11.31, "ticker": "KOTON.IS"}
 {"date": "2026-06-02", "price": 0.000662, "ticker": "KRWUSD=X"}
 {"date": "2026-06-03", "price": 0.000659, "ticker": "KRWUSD=X"}
 {"date": "2026-06-04", "price": 0.000654, "ticker": "KRWUSD=X"}
@@ -3552,7 +3584,8 @@
 {"date": "2026-09-15", "price": 0.000743, "ticker": "KRWUSD=X"}
 {"date": "2026-09-16", "price": 0.000733, "ticker": "KRWUSD=X"}
 {"date": "2026-09-17", "price": 0.000726, "ticker": "KRWUSD=X"}
-{"date": "2026-09-18", "price": 0.000723, "ticker": "KRWUSD=X"}
+{"date": "2026-09-18", "price": 0.000725, "ticker": "KRWUSD=X"}
+{"date": "2026-09-19", "price": 0.000722, "ticker": "KRWUSD=X"}
 {"date": "2026-06-02", "price": 79.599998, "ticker": "KUYAS.IS"}
 {"date": "2026-06-03", "price": 77.449997, "ticker": "KUYAS.IS"}
 {"date": "2026-06-04", "price": 75.900002, "ticker": "KUYAS.IS"}
@@ -3621,6 +3654,7 @@
 {"date": "2026-09-02", "price": 69.050003, "ticker": "KUYAS.IS"}
 {"date": "2026-09-03", "price": 70.349998, "ticker": "KUYAS.IS"}
 {"date": "2026-09-04", "price": 68.699997, "ticker": "KUYAS.IS"}
+{"date": "2026-09-07", "price": 69.0, "ticker": "KUYAS.IS"}
 {"date": "2026-09-08", "price": 71.050003, "ticker": "KUYAS.IS"}
 {"date": "2026-09-09", "price": 72.599998, "ticker": "KUYAS.IS"}
 {"date": "2026-09-10", "price": 72.300003, "ticker": "KUYAS.IS"}
@@ -3705,6 +3739,7 @@
 {"date": "2026-09-15", "price": 250.399994, "ticker": "LABU"}
 {"date": "2026-09-16", "price": 250.410004, "ticker": "LABU"}
 {"date": "2026-09-17", "price": 270.910004, "ticker": "LABU"}
+{"date": "2026-09-18", "price": 263.200012, "ticker": "LABU"}
 {"date": "2026-06-02", "price": 9120.0, "ticker": "LISP.SW"}
 {"date": "2026-06-03", "price": 9265.0, "ticker": "LISP.SW"}
 {"date": "2026-06-04", "price": 9190.0, "ticker": "LISP.SW"}
@@ -3783,7 +3818,7 @@
 {"date": "2026-09-15", "price": 8630.0, "ticker": "LISP.SW"}
 {"date": "2026-09-16", "price": 8615.0, "ticker": "LISP.SW"}
 {"date": "2026-09-17", "price": 8680.0, "ticker": "LISP.SW"}
-{"date": "2026-09-18", "price": 8625.0, "ticker": "LISP.SW"}
+{"date": "2026-09-18", "price": 8615.0, "ticker": "LISP.SW"}
 {"date": "2026-06-02", "price": 510.273834, "ticker": "LMT"}
 {"date": "2026-06-03", "price": 508.882477, "ticker": "LMT"}
 {"date": "2026-06-04", "price": 515.859253, "ticker": "LMT"}
@@ -3859,47 +3894,48 @@
 {"date": "2026-09-15", "price": 533.460022, "ticker": "LMT"}
 {"date": "2026-09-16", "price": 537.25, "ticker": "LMT"}
 {"date": "2026-09-17", "price": 538.090027, "ticker": "LMT"}
-{"date": "2026-06-02", "price": 107.618889, "ticker": "LQD"}
+{"date": "2026-09-18", "price": 533.380005, "ticker": "LMT"}
+{"date": "2026-06-02", "price": 107.618881, "ticker": "LQD"}
 {"date": "2026-06-03", "price": 107.322472, "ticker": "LQD"}
 {"date": "2026-06-04", "price": 107.549721, "ticker": "LQD"}
 {"date": "2026-06-05", "price": 106.877846, "ticker": "LQD"}
 {"date": "2026-06-08", "price": 106.769157, "ticker": "LQD"}
 {"date": "2026-06-09", "price": 107.114983, "ticker": "LQD"}
-{"date": "2026-06-10", "price": 106.867973, "ticker": "LQD"}
+{"date": "2026-06-10", "price": 106.867966, "ticker": "LQD"}
 {"date": "2026-06-11", "price": 107.776978, "ticker": "LQD"}
-{"date": "2026-06-12", "price": 107.707809, "ticker": "LQD"}
+{"date": "2026-06-12", "price": 107.707817, "ticker": "LQD"}
 {"date": "2026-06-15", "price": 107.688049, "ticker": "LQD"}
 {"date": "2026-06-16", "price": 107.816498, "ticker": "LQD"}
 {"date": "2026-06-17", "price": 107.470673, "ticker": "LQD"}
 {"date": "2026-06-18", "price": 107.76709, "ticker": "LQD"}
 {"date": "2026-06-22", "price": 107.48056, "ticker": "LQD"}
-{"date": "2026-06-23", "price": 107.609001, "ticker": "LQD"}
+{"date": "2026-06-23", "price": 107.609009, "ticker": "LQD"}
 {"date": "2026-06-24", "price": 108.103035, "ticker": "LQD"}
 {"date": "2026-06-25", "price": 108.191963, "ticker": "LQD"}
 {"date": "2026-06-26", "price": 108.191963, "ticker": "LQD"}
-{"date": "2026-06-29", "price": 108.389572, "ticker": "LQD"}
+{"date": "2026-06-29", "price": 108.389565, "ticker": "LQD"}
 {"date": "2026-06-30", "price": 107.76709, "ticker": "LQD"}
 {"date": "2026-07-01", "price": 107.541023, "ticker": "LQD"}
 {"date": "2026-07-02", "price": 107.719498, "ticker": "LQD"}
 {"date": "2026-07-06", "price": 107.749237, "ticker": "LQD"}
 {"date": "2026-07-07", "price": 106.965935, "ticker": "LQD"}
 {"date": "2026-07-08", "price": 106.757713, "ticker": "LQD"}
-{"date": "2026-07-09", "price": 106.797379, "ticker": "LQD"}
+{"date": "2026-07-09", "price": 106.797371, "ticker": "LQD"}
 {"date": "2026-07-10", "price": 106.549492, "ticker": "LQD"}
-{"date": "2026-07-13", "price": 106.053734, "ticker": "LQD"}
+{"date": "2026-07-13", "price": 106.053726, "ticker": "LQD"}
 {"date": "2026-07-14", "price": 106.301613, "ticker": "LQD"}
 {"date": "2026-07-15", "price": 106.66848, "ticker": "LQD"}
-{"date": "2026-07-16", "price": 106.589149, "ticker": "LQD"}
+{"date": "2026-07-16", "price": 106.589157, "ticker": "LQD"}
 {"date": "2026-07-17", "price": 106.648651, "ticker": "LQD"}
 {"date": "2026-07-20", "price": 106.242119, "ticker": "LQD"}
 {"date": "2026-07-21", "price": 105.944664, "ticker": "LQD"}
 {"date": "2026-07-22", "price": 105.766182, "ticker": "LQD"}
 {"date": "2026-07-23", "price": 105.359665, "ticker": "LQD"}
 {"date": "2026-07-24", "price": 105.329918, "ticker": "LQD"}
-{"date": "2026-07-27", "price": 105.607552, "ticker": "LQD"}
+{"date": "2026-07-27", "price": 105.607544, "ticker": "LQD"}
 {"date": "2026-07-28", "price": 105.924835, "ticker": "LQD"}
 {"date": "2026-07-29", "price": 105.320007, "ticker": "LQD"}
-{"date": "2026-07-30", "price": 105.508392, "ticker": "LQD"}
+{"date": "2026-07-30", "price": 105.5084, "ticker": "LQD"}
 {"date": "2026-07-31", "price": 105.349747, "ticker": "LQD"}
 {"date": "2026-08-03", "price": 105.66642, "ticker": "LQD"}
 {"date": "2026-08-04", "price": 106.313705, "ticker": "LQD"}
@@ -3934,6 +3970,7 @@
 {"date": "2026-09-15", "price": 104.279999, "ticker": "LQD"}
 {"date": "2026-09-16", "price": 104.449997, "ticker": "LQD"}
 {"date": "2026-09-17", "price": 105.160004, "ticker": "LQD"}
+{"date": "2026-09-18", "price": 104.699997, "ticker": "LQD"}
 {"date": "2026-06-02", "price": 1672.829956, "ticker": "MELI"}
 {"date": "2026-06-03", "price": 1638.540039, "ticker": "MELI"}
 {"date": "2026-06-04", "price": 1634.780029, "ticker": "MELI"}
@@ -4009,6 +4046,7 @@
 {"date": "2026-09-15", "price": 1828.939941, "ticker": "MELI"}
 {"date": "2026-09-16", "price": 1839.709961, "ticker": "MELI"}
 {"date": "2026-09-17", "price": 1825.209961, "ticker": "MELI"}
+{"date": "2026-09-18", "price": 1787.390015, "ticker": "MELI"}
 {"date": "2026-06-02", "price": 597.076599, "ticker": "META"}
 {"date": "2026-06-03", "price": 622.403137, "ticker": "META"}
 {"date": "2026-06-04", "price": 626.988892, "ticker": "META"}
@@ -4084,6 +4122,7 @@
 {"date": "2026-09-15", "price": 670.23999, "ticker": "META"}
 {"date": "2026-09-16", "price": 673.309998, "ticker": "META"}
 {"date": "2026-09-17", "price": 682.309998, "ticker": "META"}
+{"date": "2026-09-18", "price": 665.75, "ticker": "META"}
 {"date": "2026-06-02", "price": 8.11, "ticker": "METRO.IS"}
 {"date": "2026-06-03", "price": 8.5, "ticker": "METRO.IS"}
 {"date": "2026-06-04", "price": 8.53, "ticker": "METRO.IS"}
@@ -4152,6 +4191,7 @@
 {"date": "2026-09-02", "price": 8.3, "ticker": "METRO.IS"}
 {"date": "2026-09-03", "price": 8.44, "ticker": "METRO.IS"}
 {"date": "2026-09-04", "price": 8.49, "ticker": "METRO.IS"}
+{"date": "2026-09-07", "price": 8.61, "ticker": "METRO.IS"}
 {"date": "2026-09-08", "price": 8.54, "ticker": "METRO.IS"}
 {"date": "2026-09-09", "price": 8.53, "ticker": "METRO.IS"}
 {"date": "2026-09-10", "price": 8.4, "ticker": "METRO.IS"}
@@ -4160,7 +4200,7 @@
 {"date": "2026-09-15", "price": 8.15, "ticker": "METRO.IS"}
 {"date": "2026-09-16", "price": 7.58, "ticker": "METRO.IS"}
 {"date": "2026-09-17", "price": 7.12, "ticker": "METRO.IS"}
-{"date": "2026-09-18", "price": 6.81, "ticker": "METRO.IS"}
+{"date": "2026-09-18", "price": 6.75, "ticker": "METRO.IS"}
 {"date": "2026-06-02", "price": 290.718292, "ticker": "MRVL"}
 {"date": "2026-06-03", "price": 301.575592, "ticker": "MRVL"}
 {"date": "2026-06-04", "price": 316.351959, "ticker": "MRVL"}
@@ -4236,15 +4276,16 @@
 {"date": "2026-09-15", "price": 221.699997, "ticker": "MRVL"}
 {"date": "2026-09-16", "price": 229.710007, "ticker": "MRVL"}
 {"date": "2026-09-17", "price": 240.759995, "ticker": "MRVL"}
-{"date": "2026-06-02", "price": 413.110443, "ticker": "MSI"}
+{"date": "2026-09-18", "price": 244.25, "ticker": "MRVL"}
+{"date": "2026-06-02", "price": 413.110413, "ticker": "MSI"}
 {"date": "2026-06-03", "price": 406.119507, "ticker": "MSI"}
-{"date": "2026-06-04", "price": 408.436554, "ticker": "MSI"}
-{"date": "2026-06-05", "price": 408.058655, "ticker": "MSI"}
+{"date": "2026-06-04", "price": 408.436523, "ticker": "MSI"}
+{"date": "2026-06-05", "price": 408.058624, "ticker": "MSI"}
 {"date": "2026-06-08", "price": 404.53833, "ticker": "MSI"}
 {"date": "2026-06-09", "price": 411.767914, "ticker": "MSI"}
 {"date": "2026-06-10", "price": 409.35144, "ticker": "MSI"}
 {"date": "2026-06-11", "price": 408.068604, "ticker": "MSI"}
-{"date": "2026-06-12", "price": 409.958008, "ticker": "MSI"}
+{"date": "2026-06-12", "price": 409.958038, "ticker": "MSI"}
 {"date": "2026-06-15", "price": 409.430969, "ticker": "MSI"}
 {"date": "2026-06-16", "price": 402.678711, "ticker": "MSI"}
 {"date": "2026-06-17", "price": 399.666534, "ticker": "MSI"}
@@ -4311,6 +4352,7 @@
 {"date": "2026-09-15", "price": 467.929993, "ticker": "MSI"}
 {"date": "2026-09-16", "price": 460.529999, "ticker": "MSI"}
 {"date": "2026-09-17", "price": 459.679993, "ticker": "MSI"}
+{"date": "2026-09-18", "price": 458.670013, "ticker": "MSI"}
 {"date": "2026-06-02", "price": 136.080002, "ticker": "MSTR"}
 {"date": "2026-06-03", "price": 126.550003, "ticker": "MSTR"}
 {"date": "2026-06-04", "price": 129.369995, "ticker": "MSTR"}
@@ -4386,6 +4428,7 @@
 {"date": "2026-09-15", "price": 129.600006, "ticker": "MSTR"}
 {"date": "2026-09-16", "price": 126.18, "ticker": "MSTR"}
 {"date": "2026-09-17", "price": 132.25, "ticker": "MSTR"}
+{"date": "2026-09-18", "price": 153.919998, "ticker": "MSTR"}
 {"date": "2026-06-02", "price": 1063.936279, "ticker": "MU"}
 {"date": "2026-06-03", "price": 1079.403931, "ticker": "MU"}
 {"date": "2026-06-04", "price": 995.846863, "ticker": "MU"}
@@ -4461,6 +4504,7 @@
 {"date": "2026-09-15", "price": 927.599976, "ticker": "MU"}
 {"date": "2026-09-16", "price": 926.549988, "ticker": "MU"}
 {"date": "2026-09-17", "price": 977.5, "ticker": "MU"}
+{"date": "2026-09-18", "price": 1015.799988, "ticker": "MU"}
 {"date": "2026-06-02", "price": 38.759315, "ticker": "NAIL"}
 {"date": "2026-06-03", "price": 37.831486, "ticker": "NAIL"}
 {"date": "2026-06-04", "price": 38.898991, "ticker": "NAIL"}
@@ -4536,6 +4580,7 @@
 {"date": "2026-09-15", "price": 30.66, "ticker": "NAIL"}
 {"date": "2026-09-16", "price": 29.610001, "ticker": "NAIL"}
 {"date": "2026-09-17", "price": 30.07, "ticker": "NAIL"}
+{"date": "2026-09-18", "price": 28.9, "ticker": "NAIL"}
 {"date": "2026-06-02", "price": 260.579987, "ticker": "NBIS"}
 {"date": "2026-06-03", "price": 251.679993, "ticker": "NBIS"}
 {"date": "2026-06-04", "price": 259.670013, "ticker": "NBIS"}
@@ -4611,6 +4656,7 @@
 {"date": "2026-09-15", "price": 207.369995, "ticker": "NBIS"}
 {"date": "2026-09-16", "price": 209.369995, "ticker": "NBIS"}
 {"date": "2026-09-17", "price": 217.990005, "ticker": "NBIS"}
+{"date": "2026-09-18", "price": 223.539993, "ticker": "NBIS"}
 {"date": "2026-06-02", "price": 77.760002, "ticker": "NESN.SW"}
 {"date": "2026-06-03", "price": 77.279999, "ticker": "NESN.SW"}
 {"date": "2026-06-04", "price": 76.68, "ticker": "NESN.SW"}
@@ -4689,7 +4735,7 @@
 {"date": "2026-09-15", "price": 77.889999, "ticker": "NESN.SW"}
 {"date": "2026-09-16", "price": 77.660004, "ticker": "NESN.SW"}
 {"date": "2026-09-17", "price": 78.330002, "ticker": "NESN.SW"}
-{"date": "2026-09-18", "price": 76.970001, "ticker": "NESN.SW"}
+{"date": "2026-09-18", "price": 76.269997, "ticker": "NESN.SW"}
 {"date": "2026-06-02", "price": 3.469, "ticker": "NEXI.MI"}
 {"date": "2026-06-03", "price": 3.382, "ticker": "NEXI.MI"}
 {"date": "2026-06-04", "price": 3.372, "ticker": "NEXI.MI"}
@@ -4768,7 +4814,7 @@
 {"date": "2026-09-15", "price": 4.218, "ticker": "NEXI.MI"}
 {"date": "2026-09-16", "price": 4.163, "ticker": "NEXI.MI"}
 {"date": "2026-09-17", "price": 4.195, "ticker": "NEXI.MI"}
-{"date": "2026-09-18", "price": 4.2, "ticker": "NEXI.MI"}
+{"date": "2026-09-18", "price": 4.146, "ticker": "NEXI.MI"}
 {"date": "2026-06-02", "price": 16.85, "ticker": "NOK"}
 {"date": "2026-06-03", "price": 16.73, "ticker": "NOK"}
 {"date": "2026-06-04", "price": 16.620001, "ticker": "NOK"}
@@ -4844,6 +4890,7 @@
 {"date": "2026-09-15", "price": 9.84, "ticker": "NOK"}
 {"date": "2026-09-16", "price": 10.14, "ticker": "NOK"}
 {"date": "2026-09-17", "price": 10.6, "ticker": "NOK"}
+{"date": "2026-09-18", "price": 10.68, "ticker": "NOK"}
 {"date": "2026-06-02", "price": 127.650002, "ticker": "NOW"}
 {"date": "2026-06-03", "price": 117.900002, "ticker": "NOW"}
 {"date": "2026-06-04", "price": 119.360001, "ticker": "NOW"}
@@ -4919,6 +4966,7 @@
 {"date": "2026-09-15", "price": 141.899994, "ticker": "NOW"}
 {"date": "2026-09-16", "price": 139.820007, "ticker": "NOW"}
 {"date": "2026-09-17", "price": 138.470001, "ticker": "NOW"}
+{"date": "2026-09-18", "price": 135.470001, "ticker": "NOW"}
 {"date": "2026-07-07", "price": 21.08, "ticker": "OKLC"}
 {"date": "2026-07-08", "price": 20.719999, "ticker": "OKLC"}
 {"date": "2026-07-09", "price": 22.540001, "ticker": "OKLC"}
@@ -4971,6 +5019,7 @@
 {"date": "2026-09-15", "price": 10.24, "ticker": "OKLC"}
 {"date": "2026-09-16", "price": 9.9, "ticker": "OKLC"}
 {"date": "2026-09-17", "price": 12.15, "ticker": "OKLC"}
+{"date": "2026-09-18", "price": 11.13, "ticker": "OKLC"}
 {"date": "2026-06-02", "price": 52.599998, "ticker": "OKLL"}
 {"date": "2026-06-03", "price": 40.849998, "ticker": "OKLL"}
 {"date": "2026-06-04", "price": 40.849998, "ticker": "OKLL"}
@@ -5046,6 +5095,7 @@
 {"date": "2026-09-15", "price": 9.35, "ticker": "OKLL"}
 {"date": "2026-09-16", "price": 9.12, "ticker": "OKLL"}
 {"date": "2026-09-17", "price": 11.15, "ticker": "OKLL"}
+{"date": "2026-09-18", "price": 10.22, "ticker": "OKLL"}
 {"date": "2026-06-02", "price": 38.32, "ticker": "ONON"}
 {"date": "2026-06-03", "price": 37.52, "ticker": "ONON"}
 {"date": "2026-06-04", "price": 37.470001, "ticker": "ONON"}
@@ -5121,6 +5171,7 @@
 {"date": "2026-09-15", "price": 26.76, "ticker": "ONON"}
 {"date": "2026-09-16", "price": 27.15, "ticker": "ONON"}
 {"date": "2026-09-17", "price": 27.33, "ticker": "ONON"}
+{"date": "2026-09-18", "price": 27.26, "ticker": "ONON"}
 {"date": "2026-06-02", "price": 243.732071, "ticker": "ORCL"}
 {"date": "2026-06-03", "price": 229.531464, "ticker": "ORCL"}
 {"date": "2026-06-04", "price": 235.52063, "ticker": "ORCL"}
@@ -5196,6 +5247,7 @@
 {"date": "2026-09-15", "price": 140.350006, "ticker": "ORCL"}
 {"date": "2026-09-16", "price": 143.160004, "ticker": "ORCL"}
 {"date": "2026-09-17", "price": 150.589996, "ticker": "ORCL"}
+{"date": "2026-09-18", "price": 147.610001, "ticker": "ORCL"}
 {"date": "2026-06-02", "price": 152.169998, "ticker": "PLTR"}
 {"date": "2026-06-03", "price": 142.199997, "ticker": "PLTR"}
 {"date": "2026-06-04", "price": 141.699997, "ticker": "PLTR"}
@@ -5271,6 +5323,7 @@
 {"date": "2026-09-15", "price": 172.559998, "ticker": "PLTR"}
 {"date": "2026-09-16", "price": 174.339996, "ticker": "PLTR"}
 {"date": "2026-09-17", "price": 176.240005, "ticker": "PLTR"}
+{"date": "2026-09-18", "price": 177.639999, "ticker": "PLTR"}
 {"date": "2026-06-02", "price": 0.465, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
 {"date": "2026-06-03", "price": 0.455, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
 {"date": "2026-06-04", "price": 0.42, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
@@ -5365,6 +5418,7 @@
 {"date": "2026-09-16", "price": 0.0, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
 {"date": "2026-09-17", "price": 0.0, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
 {"date": "2026-09-18", "price": 0.0, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
+{"date": "2026-09-19", "price": 0.0, "ticker": "POLY:2026-mens-us-open-winner-tennis:YES"}
 {"date": "2026-08-19", "price": 0.39, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
 {"date": "2026-08-20", "price": 0.765, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
 {"date": "2026-08-21", "price": 0.585, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
@@ -5393,6 +5447,7 @@
 {"date": "2026-09-16", "price": 0.0, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
 {"date": "2026-09-17", "price": 0.0, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
 {"date": "2026-09-18", "price": 0.0, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
+{"date": "2026-09-19", "price": 0.0, "ticker": "POLY:us-canada-diplomatic-agreement-to-lower-tariffs-by-august-31:YES"}
 {"date": "2026-06-02", "price": 0.545, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
 {"date": "2026-06-03", "price": 0.565, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
 {"date": "2026-06-04", "price": 0.575, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
@@ -5424,6 +5479,7 @@
 {"date": "2026-09-16", "price": 0.0, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
 {"date": "2026-09-17", "price": 0.0, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
 {"date": "2026-09-18", "price": 0.0, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
+{"date": "2026-09-19", "price": 0.0, "ticker": "POLY:us-iran-nuclear-deal-by-july-31:NO"}
 {"date": "2026-06-02", "price": 0.33, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
 {"date": "2026-06-03", "price": 0.335, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
 {"date": "2026-06-04", "price": 0.33, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
@@ -5531,7 +5587,8 @@
 {"date": "2026-09-15", "price": 0.285, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
 {"date": "2026-09-16", "price": 0.295, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
 {"date": "2026-09-17", "price": 0.305, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
-{"date": "2026-09-18", "price": 0.285, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
+{"date": "2026-09-18", "price": 0.305, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
+{"date": "2026-09-19", "price": 0.275, "ticker": "POLY:who-will-be-the-next-prime-minister-of-israel-after-the-next-election:YES"}
 {"date": "2026-06-02", "price": 12.14, "ticker": "QNST"}
 {"date": "2026-06-03", "price": 11.39, "ticker": "QNST"}
 {"date": "2026-06-04", "price": 11.86, "ticker": "QNST"}
@@ -5607,6 +5664,7 @@
 {"date": "2026-09-15", "price": 18.360001, "ticker": "QNST"}
 {"date": "2026-09-16", "price": 18.4, "ticker": "QNST"}
 {"date": "2026-09-17", "price": 17.67, "ticker": "QNST"}
+{"date": "2026-09-18", "price": 17.549999, "ticker": "QNST"}
 {"date": "2026-06-02", "price": 93.300003, "ticker": "SAHOL.IS"}
 {"date": "2026-06-03", "price": 90.699997, "ticker": "SAHOL.IS"}
 {"date": "2026-06-04", "price": 92.0, "ticker": "SAHOL.IS"}
@@ -5684,7 +5742,7 @@
 {"date": "2026-09-15", "price": 90.300003, "ticker": "SAHOL.IS"}
 {"date": "2026-09-16", "price": 84.300003, "ticker": "SAHOL.IS"}
 {"date": "2026-09-17", "price": 90.599998, "ticker": "SAHOL.IS"}
-{"date": "2026-09-18", "price": 89.150002, "ticker": "SAHOL.IS"}
+{"date": "2026-09-18", "price": 88.050003, "ticker": "SAHOL.IS"}
 {"date": "2026-06-02", "price": 7.66, "ticker": "SEKUR.IS"}
 {"date": "2026-06-03", "price": 7.39, "ticker": "SEKUR.IS"}
 {"date": "2026-06-04", "price": 7.33, "ticker": "SEKUR.IS"}
@@ -5753,6 +5811,7 @@
 {"date": "2026-09-02", "price": 10.35, "ticker": "SEKUR.IS"}
 {"date": "2026-09-03", "price": 10.0, "ticker": "SEKUR.IS"}
 {"date": "2026-09-04", "price": 9.92, "ticker": "SEKUR.IS"}
+{"date": "2026-09-07", "price": 9.66, "ticker": "SEKUR.IS"}
 {"date": "2026-09-08", "price": 9.64, "ticker": "SEKUR.IS"}
 {"date": "2026-09-09", "price": 9.71, "ticker": "SEKUR.IS"}
 {"date": "2026-09-10", "price": 9.97, "ticker": "SEKUR.IS"}
@@ -5837,6 +5896,7 @@
 {"date": "2026-09-15", "price": 129.860001, "ticker": "SHOP"}
 {"date": "2026-09-16", "price": 129.960007, "ticker": "SHOP"}
 {"date": "2026-09-17", "price": 128.600006, "ticker": "SHOP"}
+{"date": "2026-09-18", "price": 128.5, "ticker": "SHOP"}
 {"date": "2026-06-02", "price": 94.199997, "ticker": "SNV3.L"}
 {"date": "2026-06-03", "price": 106.900002, "ticker": "SNV3.L"}
 {"date": "2026-06-04", "price": 106.599998, "ticker": "SNV3.L"}
@@ -5914,7 +5974,7 @@
 {"date": "2026-09-15", "price": 84.400002, "ticker": "SNV3.L"}
 {"date": "2026-09-16", "price": 80.25, "ticker": "SNV3.L"}
 {"date": "2026-09-17", "price": 76.900002, "ticker": "SNV3.L"}
-{"date": "2026-09-18", "price": 74.199997, "ticker": "SNV3.L"}
+{"date": "2026-09-18", "price": 76.199997, "ticker": "SNV3.L"}
 {"date": "2026-06-02", "price": 74.614761, "ticker": "STNG"}
 {"date": "2026-06-03", "price": 75.12188, "ticker": "STNG"}
 {"date": "2026-06-04", "price": 74.654541, "ticker": "STNG"}
@@ -5990,6 +6050,7 @@
 {"date": "2026-09-15", "price": 85.730003, "ticker": "STNG"}
 {"date": "2026-09-16", "price": 85.639999, "ticker": "STNG"}
 {"date": "2026-09-17", "price": 87.849998, "ticker": "STNG"}
+{"date": "2026-09-18", "price": 87.160004, "ticker": "STNG"}
 {"date": "2026-06-02", "price": 252.506067, "ticker": "TAO-USD"}
 {"date": "2026-06-03", "price": 225.651875, "ticker": "TAO-USD"}
 {"date": "2026-06-04", "price": 226.332258, "ticker": "TAO-USD"}
@@ -6099,6 +6160,7 @@
 {"date": "2026-09-16", "price": 217.850424, "ticker": "TAO-USD"}
 {"date": "2026-09-17", "price": 221.931872, "ticker": "TAO-USD"}
 {"date": "2026-09-18", "price": 232.244086, "ticker": "TAO-USD"}
+{"date": "2026-09-19", "price": 250.10786, "ticker": "TAO-USD"}
 {"date": "2026-06-02", "price": 48.470001, "ticker": "TCOM"}
 {"date": "2026-06-03", "price": 47.939999, "ticker": "TCOM"}
 {"date": "2026-06-04", "price": 48.060001, "ticker": "TCOM"}
@@ -6174,6 +6236,7 @@
 {"date": "2026-09-15", "price": 39.25, "ticker": "TCOM"}
 {"date": "2026-09-16", "price": 40.43, "ticker": "TCOM"}
 {"date": "2026-09-17", "price": 40.360001, "ticker": "TCOM"}
+{"date": "2026-09-18", "price": 40.68, "ticker": "TCOM"}
 {"date": "2026-06-02", "price": 300.0, "ticker": "THYAO.IS"}
 {"date": "2026-06-03", "price": 297.0, "ticker": "THYAO.IS"}
 {"date": "2026-06-04", "price": 299.75, "ticker": "THYAO.IS"}
@@ -6251,7 +6314,7 @@
 {"date": "2026-09-15", "price": 285.25, "ticker": "THYAO.IS"}
 {"date": "2026-09-16", "price": 273.0, "ticker": "THYAO.IS"}
 {"date": "2026-09-17", "price": 289.25, "ticker": "THYAO.IS"}
-{"date": "2026-09-18", "price": 288.25, "ticker": "THYAO.IS"}
+{"date": "2026-09-18", "price": 285.5, "ticker": "THYAO.IS"}
 {"date": "2026-06-02", "price": 6.49, "ticker": "TMC"}
 {"date": "2026-06-03", "price": 6.12, "ticker": "TMC"}
 {"date": "2026-06-04", "price": 5.99, "ticker": "TMC"}
@@ -6327,6 +6390,7 @@
 {"date": "2026-09-15", "price": 3.75, "ticker": "TMC"}
 {"date": "2026-09-16", "price": 3.63, "ticker": "TMC"}
 {"date": "2026-09-17", "price": 3.74, "ticker": "TMC"}
+{"date": "2026-09-18", "price": 3.78, "ticker": "TMC"}
 {"date": "2026-06-02", "price": 0.021774, "ticker": "TRYUSD=X"}
 {"date": "2026-06-03", "price": 0.021765, "ticker": "TRYUSD=X"}
 {"date": "2026-06-04", "price": 0.021752, "ticker": "TRYUSD=X"}
@@ -6409,7 +6473,7 @@
 {"date": "2026-09-15", "price": 0.020566, "ticker": "TRYUSD=X"}
 {"date": "2026-09-16", "price": 0.020553, "ticker": "TRYUSD=X"}
 {"date": "2026-09-17", "price": 0.020548, "ticker": "TRYUSD=X"}
-{"date": "2026-09-18", "price": 0.020499, "ticker": "TRYUSD=X"}
+{"date": "2026-09-18", "price": 0.020509, "ticker": "TRYUSD=X"}
 {"date": "2026-06-02", "price": 250.25, "ticker": "TUPRS.IS"}
 {"date": "2026-06-03", "price": 237.899994, "ticker": "TUPRS.IS"}
 {"date": "2026-06-04", "price": 232.199997, "ticker": "TUPRS.IS"}
@@ -6478,6 +6542,7 @@
 {"date": "2026-09-02", "price": 392.25, "ticker": "TUPRS.IS"}
 {"date": "2026-09-03", "price": 391.0, "ticker": "TUPRS.IS"}
 {"date": "2026-09-04", "price": 388.5, "ticker": "TUPRS.IS"}
+{"date": "2026-09-07", "price": 394.25, "ticker": "TUPRS.IS"}
 {"date": "2026-09-08", "price": 394.5, "ticker": "TUPRS.IS"}
 {"date": "2026-09-09", "price": 414.25, "ticker": "TUPRS.IS"}
 {"date": "2026-09-10", "price": 416.75, "ticker": "TUPRS.IS"}
@@ -6486,7 +6551,7 @@
 {"date": "2026-09-15", "price": 412.5, "ticker": "TUPRS.IS"}
 {"date": "2026-09-16", "price": 401.75, "ticker": "TUPRS.IS"}
 {"date": "2026-09-17", "price": 412.0, "ticker": "TUPRS.IS"}
-{"date": "2026-09-18", "price": 413.25, "ticker": "TUPRS.IS"}
+{"date": "2026-09-18", "price": 417.25, "ticker": "TUPRS.IS"}
 {"date": "2026-06-02", "price": 19.540001, "ticker": "UUUU"}
 {"date": "2026-06-03", "price": 18.0, "ticker": "UUUU"}
 {"date": "2026-06-04", "price": 17.370001, "ticker": "UUUU"}
@@ -6562,6 +6627,7 @@
 {"date": "2026-09-15", "price": 11.86, "ticker": "UUUU"}
 {"date": "2026-09-16", "price": 11.73, "ticker": "UUUU"}
 {"date": "2026-09-17", "price": 11.98, "ticker": "UUUU"}
+{"date": "2026-09-18", "price": 11.7, "ticker": "UUUU"}
 {"date": "2026-06-02", "price": 696.232544, "ticker": "VOO"}
 {"date": "2026-06-03", "price": 691.346741, "ticker": "VOO"}
 {"date": "2026-06-04", "price": 694.038879, "ticker": "VOO"}
@@ -6637,13 +6703,14 @@
 {"date": "2026-09-15", "price": 696.200012, "ticker": "VOO"}
 {"date": "2026-09-16", "price": 693.23999, "ticker": "VOO"}
 {"date": "2026-09-17", "price": 701.030029, "ticker": "VOO"}
-{"date": "2026-06-02", "price": 334.33844, "ticker": "VRT"}
-{"date": "2026-06-03", "price": 331.289856, "ticker": "VRT"}
-{"date": "2026-06-04", "price": 323.773254, "ticker": "VRT"}
+{"date": "2026-09-18", "price": 701.780029, "ticker": "VOO"}
+{"date": "2026-06-02", "price": 334.33847, "ticker": "VRT"}
+{"date": "2026-06-03", "price": 331.289825, "ticker": "VRT"}
+{"date": "2026-06-04", "price": 323.773285, "ticker": "VRT"}
 {"date": "2026-06-05", "price": 300.373871, "ticker": "VRT"}
 {"date": "2026-06-08", "price": 300.433838, "ticker": "VRT"}
 {"date": "2026-06-09", "price": 289.388824, "ticker": "VRT"}
-{"date": "2026-06-10", "price": 280.852722, "ticker": "VRT"}
+{"date": "2026-06-10", "price": 280.852692, "ticker": "VRT"}
 {"date": "2026-06-11", "price": 297.745056, "ticker": "VRT"}
 {"date": "2026-06-12", "price": 302.732788, "ticker": "VRT"}
 {"date": "2026-06-15", "price": 311.853546, "ticker": "VRT"}
@@ -6712,6 +6779,7 @@
 {"date": "2026-09-15", "price": 234.610001, "ticker": "VRT"}
 {"date": "2026-09-16", "price": 239.410004, "ticker": "VRT"}
 {"date": "2026-09-17", "price": 241.490005, "ticker": "VRT"}
+{"date": "2026-09-18", "price": 249.389999, "ticker": "VRT"}
 {"date": "2026-06-02", "price": 157.749084, "ticker": "VST"}
 {"date": "2026-06-03", "price": 153.584915, "ticker": "VST"}
 {"date": "2026-06-04", "price": 153.485062, "ticker": "VST"}
@@ -6787,6 +6855,7 @@
 {"date": "2026-09-15", "price": 141.529999, "ticker": "VST"}
 {"date": "2026-09-16", "price": 140.389999, "ticker": "VST"}
 {"date": "2026-09-17", "price": 143.559998, "ticker": "VST"}
+{"date": "2026-09-18", "price": 140.669998, "ticker": "VST"}
 {"date": "2026-06-02", "price": 112.789978, "ticker": "WMT"}
 {"date": "2026-06-03", "price": 116.610832, "ticker": "WMT"}
 {"date": "2026-06-04", "price": 117.458801, "ticker": "WMT"}
@@ -6862,6 +6931,7 @@
 {"date": "2026-09-15", "price": 108.089996, "ticker": "WMT"}
 {"date": "2026-09-16", "price": 107.5, "ticker": "WMT"}
 {"date": "2026-09-17", "price": 106.790001, "ticker": "WMT"}
+{"date": "2026-09-18", "price": 106.730003, "ticker": "WMT"}
 {"date": "2026-06-02", "price": 18.305437, "ticker": "WPP"}
 {"date": "2026-06-03", "price": 17.118793, "ticker": "WPP"}
 {"date": "2026-06-04", "price": 18.072001, "ticker": "WPP"}
@@ -6937,6 +7007,7 @@
 {"date": "2026-09-15", "price": 25.82, "ticker": "WPP"}
 {"date": "2026-09-16", "price": 25.370001, "ticker": "WPP"}
 {"date": "2026-09-17", "price": 25.74, "ticker": "WPP"}
+{"date": "2026-09-18", "price": 25.42, "ticker": "WPP"}
 {"date": "2026-06-02", "price": 148.597809, "ticker": "XOM"}
 {"date": "2026-06-03", "price": 151.548706, "ticker": "XOM"}
 {"date": "2026-06-04", "price": 151.061844, "ticker": "XOM"}
@@ -7012,3 +7083,4 @@
 {"date": "2026-09-15", "price": 169.320007, "ticker": "XOM"}
 {"date": "2026-09-16", "price": 163.320007, "ticker": "XOM"}
 {"date": "2026-09-17", "price": 163.270004, "ticker": "XOM"}
+{"date": "2026-09-18", "price": 163.539993, "ticker": "XOM"}
