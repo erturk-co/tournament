@@ -22,6 +22,7 @@ const series = {
   NEGFIRST:  { "2026-09-14": -1,   "2026-09-15": 50,  "2026-09-16": 55  },
   NULLFIRST: { "2026-09-14": null, "2026-09-15": 50,  "2026-09-16": 55  },
   ALLZERO:   { "2026-09-14": 0,    "2026-09-15": 0,   "2026-09-16": 0   },
+  FLAT:      { "2026-09-14": 50,   "2026-09-15": 50,  "2026-09-16": 50  },
   // Stopped trading well before the window opened, at a real price.
   DELISTED:  { "2026-08-24": 5.1,  "2026-08-25": 5.0 },
   // Also stopped before the window, but having fallen to nothing.
@@ -113,6 +114,27 @@ console.log("\n…but a REPLACED row (same effective_date) must report nothing")
   near("only the surviving row scores", resub.totalReturn * 100, 10);
   eq("the discarded row reports no dead positions", resub.dead.length, 0);
   eq("…and no awaiting positions", resub.awaiting.length, 0);
+}
+
+console.log("\nrebalance handoff — the old book is sold at the handoff close, not the day before");
+{
+  // GOOD runs 100 -> 105 -> 110. Rebalancing into a flat asset on the final
+  // day must book the same total as never rebalancing: you hold GOOD until
+  // that day's close, then buy the new book at that same close.
+  const held  = run([alloc([P("GOOD", 100)], OLD, "2026-09-14")]);
+  const rebal = run([alloc([P("GOOD", 100)], OLD, "2026-09-14"),
+                     alloc([P("FLAT", 100)], OLD, "2026-09-16")]);
+  near("holding throughout", held.totalReturn * 100, 10);
+  near("rebalancing on the last day books the same", rebal.totalReturn * 100, 10);
+  const dates = rebal.series.map(s => s.date);
+  eq("every date scored exactly once", new Set(dates).size, dates.length);
+  eq("no date skipped at the boundary", dates.join(","), "2026-09-14,2026-09-15,2026-09-16");
+
+  // Mid-window handoff: the new book starts from the handoff close, so the
+  // old book keeps that day's gain and the flat replacement adds nothing.
+  const mid = run([alloc([P("GOOD", 100)], OLD, "2026-09-14"),
+                   alloc([P("FLAT", 100)], OLD, "2026-09-15")]);
+  near("old book keeps its handoff-day gain", mid.totalReturn * 100, 5);
 }
 
 console.log("\ncurrency — a venue is not one currency");

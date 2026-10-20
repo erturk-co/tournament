@@ -412,7 +412,11 @@ function getPriceSeries(ticker, win) {
     .map(d => ({ time: d, value: series[d] }));
 }
 
-function getReturnSeries(pos, periodStart, periodEnd, win, missing = null) {
+// `handoff` is the day the next allocation takes over, and it is INCLUSIVE:
+// the old book is still held through that day's close, which is also the price
+// the new book is bought at. Excluding it silently dropped the old positions'
+// move on every rebalance day.
+function getReturnSeries(pos, periodStart, handoff, win, missing = null) {
   const series = priceData[pos.ticker];
   if (!series) return null;
   const baseline = getBaselinePriceForPosition(pos, periodStart, win);
@@ -429,7 +433,7 @@ function getReturnSeries(pos, periodStart, periodEnd, win, missing = null) {
   if (baseline.frozen) return [{ date: periodStart, ret: 0 }];
 
   let dates = sortedDates(series).filter(d => d >= periodStart && withinWindow(d, win));
-  if (periodEnd) dates = dates.filter(d => d < periodEnd);
+  if (handoff) dates = dates.filter(d => d <= handoff);
   if (!dates.length) return null;    // not yet trading in this window
 
   return dates.map(d => ({
@@ -464,15 +468,15 @@ function awaitingFirstPrices(period) {
 //              settled at 0. Scored as a total loss by tournament rule.
 //              Previously these silently contributed 0%, so a worthless
 //              holding looked like a harmless cash sleeve.
-function classifyPosition(pos, periodStart, periodEnd, win, period = null, missing = null) {
+function classifyPosition(pos, periodStart, handoff, win, period = null, missing = null) {
   if (!pos.ticker) return { kind: "cash" };
   if (!priceData[pos.ticker]) {
     return awaitingFirstPrices(period)
       ? { kind: "awaiting", reason: "waiting for the next hourly price refresh" }
       : { kind: "dead", reason: "no price data for this ticker" };
   }
-  const ret = getReturnSeries(pos, periodStart, periodEnd, win, missing);
-  if (!ret) return { kind: "dead", reason: deadReason(pos, periodStart, periodEnd, win) };
+  const ret = getReturnSeries(pos, periodStart, handoff, win, missing);
+  if (!ret) return { kind: "dead", reason: deadReason(pos, periodStart, handoff, win) };
 
   const baseline = getBaselinePriceForPosition(pos, periodStart, win);
   if (baseline?.frozen) {
@@ -488,10 +492,10 @@ function classifyPosition(pos, periodStart, periodEnd, win, period = null, missi
 // Yahoo keeps displaying a delisted instrument's final trade as though it were
 // live, so a bare "no usable price" invites the fair objection that the price
 // is right there on the quote page.
-function deadReason(pos, periodStart, periodEnd, win) {
+function deadReason(pos, periodStart, handoff, win) {
   const series = priceData[pos.ticker];
   const inWindow = sortedDates(series)
-    .filter(d => d >= periodStart && withinWindow(d, win) && (!periodEnd || d < periodEnd));
+    .filter(d => d >= periodStart && withinWindow(d, win) && (!handoff || d <= handoff));
 
   if (!inWindow.length) {
     // Reaching here means there was also no usable price *before* the window
@@ -530,16 +534,21 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
   asOfDate = windowAsOf(win, asOfDate);
 
   const { current } = effectiveAllocation(participant, asOfDate);
-  // Sorted ascending, tie-broken by created_at: if a participant resubmits
-  // before their pending change takes effect (two rows sharing the same
-  // effective_date), the later-created one is ordered last and — since its
-  // periodEnd is the *next distinct* date — is the one that actually gets a
-  // date range; the superseded row's range collapses to empty. This lets a
-  // resubmission "replace" the prior one for display without needing to
-  // update/delete the append-only allocations table.
-  const periods = [...participant.allocations]
+  // Sorted ascending, tie-broken by created_at: a resubmission filed before
+  // its predecessor ever took effect shares that effective_date and, being
+  // later-created, sorts after it. That lets a filing "replace" an earlier one
+  // without updating the append-only allocations table.
+  const filed = [...participant.allocations]
     .filter(a => a.effective_date <= asOfDate)
     .sort((a, b) => a.effective_date.localeCompare(b.effective_date) || a.created_at.localeCompare(b.created_at));
+
+  // Drop the replaced rows outright rather than relying on their date range
+  // collapsing to nothing. They never held anything for a single day, so they
+  // must contribute neither return nor reporting — classifying one would mark
+  // every position in it dead (no prices exist inside an empty range) and
+  // attribute a discarded ticker to a portfolio that does not hold it.
+  const periods = filed.filter((p, i) =>
+    !(filed[i + 1] && filed[i + 1].effective_date === p.effective_date));
 
   const dead = [];
   const awaiting = [];
@@ -552,25 +561,28 @@ function computePortfolioReturn(participant, win, asOfDate = getToday()) {
     // An allocation carried over from before the window opens is still scored
     // from the window's own start, never from its original effective date.
     const periodStart = period.effective_date < win.start ? win.start : period.effective_date;
-    const periodEnd   = periods[i + 1] ? periods[i + 1].effective_date : null;
+    // The day the next allocation takes over. It belongs to THIS period: you
+    // hold the old book until that day's close, then sell and buy the new one
+    // at the same close. Treating it as the new period's first day instead
+    // dropped the old book's move on every rebalance day — a real 0.86pp for
+    // the one rebalance filed so far.
+    const handoff     = periods[i + 1] ? periods[i + 1].effective_date : null;
     // Number(), not `|| 0`: a weight stored as the string "50" made `+` do
     // string concatenation, inflating totalWeight to 5050 and quietly
     // shrinking every penalty to a rounding error.
     const weightOf    = p => Number(p.weight) || 0;
     const totalWeight = period.positions.reduce((s, p) => s + weightOf(p), 0) || 100;
 
-    const periodDates = dates.filter(d => d >= periodStart && (!periodEnd || d < periodEnd));
-    // A resubmission on the same effective_date collapses the superseded row's
-    // range to nothing. Such a row contributes no dates and so no return — and
-    // it must contribute no *reporting* either. Classifying it would mark every
-    // one of its positions dead (there are no prices inside an empty range) and
-    // attribute another participant's discarded tickers to this one.
-    if (!periodDates.length) return;
+    // The previous period already scored this period's opening day (its own
+    // handoff), so the lower bound is exclusive for every period but the first.
+    // That keeps each date in exactly one period: no gap, no double count.
+    const periodDates = dates.filter(d =>
+      (i === 0 ? d >= periodStart : d > periodStart) && (!handoff || d <= handoff));
 
     const entries = period.positions.map(pos => ({
       pos,
       weight: weightOf(pos) / totalWeight,
-      ...classifyPosition(pos, periodStart, periodEnd, win, period, missingFX),
+      ...classifyPosition(pos, periodStart, handoff, win, period, missingFX),
     }));
 
     // Collected across every period that actually scored, not just the current
