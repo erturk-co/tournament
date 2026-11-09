@@ -27,6 +27,9 @@ const series = {
   DELISTED:  { "2026-08-24": 5.1,  "2026-08-25": 5.0 },
   // Also stopped before the window, but having fallen to nothing.
   WENTZERO:  { "2026-08-24": 0.4,  "2026-08-25": 0   },
+  // Last close is 4 days behind the newest data: a venue that reports later,
+  // not an instrument that has stopped.
+  LAGGING:   { "2026-09-11": 10,   "2026-09-12": 10  },
 };
 const prices = [];
 for (const [ticker, s] of Object.entries(series)) {
@@ -76,6 +79,21 @@ eq("stopped trading before the window -> frozen", kind("DELISTED"), "frozen");
   const z = run([alloc([P("WENTZERO", 50), P("GOOD", 50)])]);
   eq("traded to zero before the window -> dead", kind("WENTZERO"), "dead");
   near("…and costs its full weight", z.totalReturn * 100, -45);
+}
+
+console.log("\nlagging venue — a late close is not a delisting");
+{
+  // ONON hit this in production: a US listing had no Monday bar yet while the
+  // Swiss, Israeli and Turkish holdings already did, and it was reported to
+  // the user as "stopped trading".
+  eq("recent last close -> awaiting, not frozen", kind("LAGGING"), "awaiting");
+  eq("long-dead instrument is still frozen",      kind("DELISTED"), "frozen");
+  const r = run([alloc([P("LAGGING", 50), P("GOOD", 50)])]);
+  eq("the lagging position is reported as awaiting", r.awaiting.length, 1);
+  eq("and not as frozen", r.frozen.length, 0);
+  ok("the reason does not claim it stopped trading",
+    !/stopped trading/.test(r.awaiting[0].reason), r.awaiting[0].reason);
+  near("it scores 0% for its sleeve, same as before", r.totalReturn * 100, 5);
 }
 
 console.log("\ngrace period — a just-submitted ticker is not punished for the fetcher lagging");

@@ -170,6 +170,16 @@ async function loadData() {
     (priceData[ticker] ??= {})[date] = price;
   });
 
+  // Newest date anywhere in the price data. A single ticker's staleness only
+  // means something relative to the rest of the market: venues close at
+  // different times, so a US listing routinely has no row on a day when the
+  // Swiss, Israeli and Turkish ones already do.
+  latestPriceDate = null;
+  for (const series of Object.values(priceData)) {
+    const last = sortedDates(series).at(-1);
+    if (last && (!latestPriceDate || last > latestPriceDate)) latestPriceDate = last;
+  }
+
   // Populated by fetch_prices.py from Yahoo's own `currency` field. Absent
   // until the ticker_meta migration runs, in which case currencyFor() falls
   // back to the suffix guess.
@@ -340,6 +350,16 @@ const SUBUNIT = { GBp: ["GBP", 100], ILA: ["ILS", 100], ZAc: ["ZAR", 100] };
 // defaults it whenever the exchange code isn't recognised.
 let tickerCurrency = {};
 
+// How far a ticker may trail the rest of the market before we stop calling it
+// merely lagging. Needs to cover a weekend plus a public holiday: a US listing
+// whose last close is Friday is not delisted on Monday morning.
+const LAG_TOLERANCE_DAYS = 5;
+let latestPriceDate = null;
+
+function merelyLagging(lastDate) {
+  return latestPriceDate ? daysBetween(lastDate, latestPriceDate) <= LAG_TOLERANCE_DAYS : false;
+}
+
 // Fallback for tickers the fetcher hasn't recorded yet. A suffix is a decent
 // guess for single-currency venues and a bad one for London, which is why the
 // recorded value wins whenever it exists.
@@ -480,6 +500,16 @@ function classifyPosition(pos, periodStart, handoff, win, period = null, missing
 
   const baseline = getBaselinePriceForPosition(pos, periodStart, win);
   if (baseline?.frozen) {
+    // No price inside the window yet. That is only "stopped trading" if the
+    // ticker is also well behind the rest of the market — otherwise its venue
+    // simply hasn't closed yet on the day the period opened, which is the
+    // normal state of a US listing on a Monday morning next to European ones.
+    if (merelyLagging(baseline.date)) {
+      return {
+        kind: "awaiting",
+        reason: `no close yet since ${baseline.date} — this venue reports later than the others`,
+      };
+    }
     return {
       kind: "frozen", ret,
       reason: `stopped trading ${baseline.date} at ${baseline.price} — held at that price, so 0% for this round`,
